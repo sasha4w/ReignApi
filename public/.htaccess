@@ -1,0 +1,13 @@
+<IfModule mod_rewrite.c>
+# désactiver l'indexation automatique des répertoires 
+Options -Indexes
+# Réécriture du moteur activé
+RewriteEngine On
+
+# rediriger les index.php les URL si elles ne correspondent pas à un fichier ou à un dossier
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteRule . index.php [L,QSA] 
+# L dernière règle 
+# QSA (Query String Append) : permet de conserver la chaîne de requête (query string) lors de la redirection
+</IfModule>

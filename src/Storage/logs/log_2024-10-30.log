@@ -1,0 +1,10 @@
+[2024-10-30 9:43:49]	[ALERT]	404 - commande non existante :: /
+[2024-10-30 9:57:30]	[ALERT]	404 - commande non existante :: /
+[2024-10-30 10:01:07]	[ALERT]	404 - commande non existante :: /api/v1/fake-datas/
+[2024-10-30 10:01:17]	[ALERT]	404 - commande non existante :: /api/v1/
+[2024-10-30 10:02:16]	[ALERT]	404 - commande non existante :: /api/v1/
+[2024-10-30 10:02:20]	[ALERT]	404 - commande non existante :: /api/v1/posts
+[2024-10-30 10:02:31]	[ALERT]	404 - commande non existante :: /api/v1/posts/
+[2024-10-30 10:02:36]	[ALERT]	404 - commande non existante :: /api/v1/posts/
+[2024-10-30 10:02:39]	[ALERT]	404 - commande non existante :: /api/v1/posts
+[2024-10-30 10:55:54]	[ALERT]	404 - commande non existante :: /api/v1/fake-datas/posts/

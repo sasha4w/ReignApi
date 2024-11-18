@@ -1,0 +1,107 @@
+[2024-10-29 11:40:32]	[ALERT]	404 - commande non existante :: /
+[2024-10-29 11:42:38]	[ALERT]	404 - commande non existante :: /
+[2024-10-29 11:48:29]	[ALERT]	404 - commande non existante :: /
+[2024-10-29 11:48:37]	[ALERT]	404 - commande non existante :: /
+[2024-10-29 11:51:19]	[ALERT]	404 - commande non existante :: /
+[2024-10-29 12:00:26]	[ALERT]	404 - erreur dans le processus de traitement du routage
+    routeInfo: array(
+        0 => 1,
+        1 => 'post@index',
+        2 => array(),
+    )
+    exception-line: 9
+    exception-file: 'C:\Users\Sasha\Desktop\cours\MMI3\devback\API RESTFULL PROJET\src\Config\config.local.php'
+    exception-code: 'Constant APP_DB_SQLITE already defined'
+[2024-10-29 12:02:58]	[ALERT]	404 - erreur dans le processus de traitement du routage
+    routeInfo: array(
+        0 => 1,
+        1 => 'post@index',
+        2 => array(),
+    )
+    exception-line: 9
+    exception-file: 'C:\Users\Sasha\Desktop\cours\MMI3\devback\API RESTFULL PROJET\src\Config\config.local.php'
+    exception-code: 'Constant APP_DB_SQLITE already defined'
+[2024-10-29 12:04:29]	[ALERT]	404 - erreur dans le processus de traitement du routage
+    routeInfo: array(
+        0 => 1,
+        1 => 'post@index',
+        2 => array(),
+    )
+    exception-line: 9
+    exception-file: 'C:\Users\Sasha\Desktop\cours\MMI3\devback\API RESTFULL PROJET\src\Config\config.local.php'
+    exception-code: 'Constant APP_DB_SQLITE already defined'
+[2024-10-29 12:06:52]	[ALERT]	404 - erreur dans le processus de traitement du routage
+    routeInfo: array(
+        0 => 1,
+        1 => 'post@index',
+        2 => array(),
+    )
+    exception-line: 9
+    exception-file: 'C:\Users\Sasha\Desktop\cours\MMI3\devback\API RESTFULL PROJET\src\Config\config.local.php'
+    exception-code: 'Constant APP_DB_SQLITE already defined'
+[2024-10-29 12:07:05]	[ALERT]	404 - erreur dans le processus de traitement du routage
+    routeInfo: array(
+        0 => 1,
+        1 => 'post@index',
+        2 => array(),
+    )
+    exception-line: 9
+    exception-file: 'C:\Users\Sasha\Desktop\cours\MMI3\devback\API RESTFULL PROJET\src\Config\config.local.php'
+    exception-code: 'Constant APP_DB_SQLITE already defined'
+[2024-10-29 12:07:17]	[ALERT]	404 - erreur dans le processus de traitement du routage
+    routeInfo: array(
+        0 => 1,
+        1 => 'post@index',
+        2 => array(),
+    )
+    exception-line: 9
+    exception-file: 'C:\Users\Sasha\Desktop\cours\MMI3\devback\API RESTFULL PROJET\src\Config\config.local.php'
+    exception-code: 'Constant APP_DB_SQLITE already defined'
+[2024-10-29 12:07:21]	[ALERT]	404 - erreur dans le processus de traitement du routage
+    routeInfo: array(
+        0 => 1,
+        1 => 'post@index',
+        2 => array(),
+    )
+    exception-line: 9
+    exception-file: 'C:\Users\Sasha\Desktop\cours\MMI3\devback\API RESTFULL PROJET\src\Config\config.local.php'
+    exception-code: 'Constant APP_DB_SQLITE already defined'
+[2024-10-29 12:08:35]	[ALERT]	404 - erreur dans le processus de traitement du routage
+    routeInfo: array(
+        0 => 1,
+        1 => 'post@index',
+        2 => array(),
+    )
+    exception-line: 9
+    exception-file: 'C:\Users\Sasha\Desktop\cours\MMI3\devback\API RESTFULL PROJET\src\Config\config.local.php'
+    exception-code: 'Constant APP_DB_SQLITE already defined'
+[2024-10-29 12:08:43]	[ALERT]	404 - erreur dans le processus de traitement du routage
+    routeInfo: array(
+        0 => 1,
+        1 => 'post@index',
+        2 => array(),
+    )
+    exception-line: 9
+    exception-file: 'C:\Users\Sasha\Desktop\cours\MMI3\devback\API RESTFULL PROJET\src\Config\config.local.php'
+    exception-code: 'Constant APP_DB_SQLITE already defined'
+[2024-10-29 12:11:59]	[ALERT]	500 - le contrôleur App\Controller\CurlController n'existe pas
+[2024-10-29 12:12:09]	[ALERT]	404 - erreur dans le processus de traitement du routage
+    routeInfo: array(
+        0 => 1,
+        1 => 'post@index',
+        2 => array(),
+    )
+    exception-line: 9
+    exception-file: 'C:\Users\Sasha\Desktop\cours\MMI3\devback\API RESTFULL PROJET\src\Config\config.local.php'
+    exception-code: 'Constant APP_DB_SQLITE already defined'
+[2024-10-29 12:16:41]	[ALERT]	404 - erreur dans le processus de traitement du routage
+    routeInfo: array(
+        0 => 1,
+        1 => 'post@index',
+        2 => array(),
+    )
+    exception-line: 9
+    exception-file: 'C:\Users\Sasha\Desktop\cours\MMI3\devback\API RESTFULL PROJET\src\Config\config.local.php'
+    exception-code: 'Constant APP_DB_SQLITE already defined'
+[2024-10-29 12:22:58]	[ALERT]	404 - commande non existante :: /
+[2024-10-29 12:26:45]	[ALERT]	404 - commande non existante :: /
