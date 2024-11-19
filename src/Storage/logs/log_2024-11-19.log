@@ -1,0 +1,66 @@
+[2024-11-19 14:51:31]	[ALERT]	404 - commande non existante :: /
+[2024-11-19 15:06:57]	[ALERT]	404 - erreur dans le processus de traitement du routage
+    routeInfo: array(
+        0 => 1,
+        1 => 'carte@getCartesForAdmin',
+        2 => array(),
+    )
+    exception-line: 225
+    exception-file: 'C:\xampp\htdocs\ReignApi\src\Model\Model.php'
+    exception-code: 'SQLSTATE[HY000]: General error: 1 no such table: deck'
+[2024-11-19 15:08:12]	[ALERT]	404 - erreur dans le processus de traitement du routage
+    routeInfo: array(
+        0 => 1,
+        1 => 'carte@getCartesForAdmin',
+        2 => array(),
+    )
+    exception-line: 225
+    exception-file: 'C:\xampp\htdocs\ReignApi\src\Model\Model.php'
+    exception-code: 'SQLSTATE[HY000]: General error: 1 no such table: deck'
+[2024-11-19 15:20:26]	[ALERT]	404 - erreur dans le processus de traitement du routage
+    routeInfo: array(
+        0 => 1,
+        1 => 'carte@getCartesForAdmin',
+        2 => array(),
+    )
+    exception-line: 225
+    exception-file: 'C:\xampp\htdocs\ReignApi\src\Model\Model.php'
+    exception-code: 'SQLSTATE[HY000]: General error: 1 no such table: deck'
+[2024-11-19 15:20:28]	[ALERT]	404 - erreur dans le processus de traitement du routage
+    routeInfo: array(
+        0 => 1,
+        1 => 'carte@getCartesForAdmin',
+        2 => array(),
+    )
+    exception-line: 225
+    exception-file: 'C:\xampp\htdocs\ReignApi\src\Model\Model.php'
+    exception-code: 'SQLSTATE[HY000]: General error: 1 no such table: deck'
+[2024-11-19 15:24:10]	[ALERT]	404 - erreur dans le processus de traitement du routage
+    routeInfo: array(
+        0 => 1,
+        1 => 'carte@getCartesForAdmin',
+        2 => array(),
+    )
+    exception-line: 225
+    exception-file: 'C:\xampp\htdocs\ReignApi\src\Model\Model.php'
+    exception-code: 'SQLSTATE[HY000]: General error: 1 no such table: deck'
+[2024-11-19 15:27:01]	[ALERT]	404 - erreur dans le processus de traitement du routage
+    routeInfo: array(
+        0 => 1,
+        1 => 'carte@getCartesForAdmin',
+        2 => array(),
+    )
+    exception-line: 225
+    exception-file: 'C:\xampp\htdocs\ReignApi\src\Model\Model.php'
+    exception-code: 'SQLSTATE[HY000]: General error: 1 no such table: deck'
+[2024-11-19 15:28:22]	[ALERT]	404 - commande non existante :: /
+[2024-11-19 15:30:10]	[ALERT]	404 - commande non existante :: /
+[2024-11-19 15:47:03]	[ALERT]	404 - erreur dans le processus de traitement du routage
+    routeInfo: array(
+        0 => 1,
+        1 => 'carte@getCartesForCreateur',
+        2 => array(),
+    )
+    exception-line: 93
+    exception-file: 'C:\xampp\htdocs\ReignApi\src\Controller\CarteController.php'
+    exception-code: 'Undefined variable $_SESSION'

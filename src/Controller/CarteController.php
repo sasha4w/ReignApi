@@ -18,6 +18,10 @@ class CarteController extends Controller
      */
     public function index()
     {
+        header("Access-Control-Allow-Origin: *");
+        header("Access-Control-Allow-Headers: Content-Type");
+        header("Content-Type: application/json");
+        
         // Détecter le rôle de l'utilisateur
         $isLoggedInAsAdmin = isset($_SESSION['ad_mail_admin']);
         $isLoggedInAsCreateur = isset($_SESSION['ad_mail_createur']);
@@ -28,24 +32,85 @@ class CarteController extends Controller
         $currentTime = (new DateTime())->format('Y-m-d H:i:s');
 
         if ($isLoggedInAsAdmin) {
-            $decksInfos = $this->getDecksForAdmin();
-            $cartesByDeck = $this->getCartesGroupedByDeckForAdmin($decksInfos);
+            $cartesByDeck = $this->getCartesForAdmin(); // Appel à la méthode dédiée
         }
 
         if ($isLoggedInAsCreateur) {
-            $id_createur = (int)$_SESSION['id_createur'];
-            $decksInfos = $this->getDecksForCreateur($id_createur);
-            $cartesByDeck = $this->getCartesGroupedByDeckForCreateur($decksInfos, $id_createur);
+            $cartesByDeck = $this->getCartesForCreateur(); // Appel à la méthode dédiée
         }
 
         $this->display('cartes/index.html.twig', compact(
-            'decksInfos', 
             'cartesByDeck', 
             'isLoggedInAsAdmin', 
             'isLoggedInAsCreateur', 
             'currentTime'
         ));
     }
+
+    /**
+     * Renvoie les cartes pour un administrateur, regroupées par deck.
+     */
+    public function getCartesForAdmin(): void
+    {
+        header("Access-Control-Allow-Origin: *");
+        header("Access-Control-Allow-Headers: Content-Type");
+        header("Content-Type: application/json");
+    
+        try {
+            $decksInfos = Carte::getInstance()->findAllWithDecksAdmin(); // All decks
+            $cartes = Carte::getInstance()->findAll(); // All cards
+            $this->decodeCardChoices($cartes); // Decode choices
+    
+            $cartesByDeck = $this->groupCartesByDeck($decksInfos, $cartes);
+    
+            // Return JSON response
+            echo json_encode([
+                'status' => 'success',
+                'deck' => $cartesByDeck
+            ], JSON_PRETTY_PRINT);
+        } catch (Exception $e) {
+            // Return error response
+            http_response_code(500); // Internal Server Error
+            echo json_encode([
+                'status' => 'error',
+                'message' => $e->getMessage()
+            ]);
+        }
+    }
+    
+
+    /**
+     * Renvoie les cartes pour un créateur spécifique, regroupées par deck.
+     */
+    public function getCartesForCreateur($id_createur): void
+    {
+        // Force la conversion du paramètre en entier
+        $id_createur = (int) $id_createur;
+    
+        // Le reste de ta logique
+        header("Access-Control-Allow-Origin: *");
+        header("Access-Control-Allow-Headers: Content-Type");
+        header("Content-Type: application/json");
+        
+        // Tu utilises maintenant l'ID passé dans l'URL au lieu de la variable de session
+        $decksInfos = Carte::getInstance()->findAllWithDecksCreateur(); // Decks du créateur
+        $cartesByDeck = [];
+    
+        foreach ($decksInfos as $deckInfo) {
+            $deckId = (int)($deckInfo['id_deck'] ?? $deckInfo->id_deck);
+            $cartesByDeck[$deckId] = Carte::getInstance()->findByDeckAndCreateur($deckId, $id_createur);
+            $this->decodeCardChoices($cartesByDeck[$deckId]);
+        }
+    
+        // Return JSON response
+        echo json_encode([
+            'status' => 'success',
+            'deck' => $cartesByDeck
+        ], JSON_PRETTY_PRINT);
+    }
+    
+    
+    
 
     /**
      * Récupère les decks pour l'administrateur.

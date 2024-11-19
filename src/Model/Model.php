@@ -29,11 +29,20 @@ class Model
     {
         if (!self::$dbh) {
             try {
-                // base SQlite
-                self::$dbh = new \PDO('sqlite:' . APP_STORAGE_DIRECTORY . APP_DB_SQLITE);
-                self::$dbh->setAttribute(\PDO::ATTR_DEFAULT_FETCH_MODE, \PDO::FETCH_ASSOC);
-                self::$dbh->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
-                self::$dbh->setAttribute(\PDO::ATTR_CURSOR, \PDO::CURSOR_FWDONLY);
+                self::$dbh = new \PDO(
+                    APP_DB_DSN,
+                    // nom de l'utilisateur MYSQL
+                    APP_DB_USER,
+                    // mot de passe de l'utilisateur MYSQL
+                    APP_DB_PASSWORD,
+                    // réglage d'options qui permet de récupérer les informations de la base
+                    // sous forme de tableau associatif
+                    // et de demander de déclencher une exception quand une erreur de SQL est détectée
+                    [
+                        \PDO::ATTR_DEFAULT_FETCH_MODE => \PDO::FETCH_ASSOC,
+                        \PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION,
+                    ]
+                );
             } catch (\Exception $e) {
                 // ICI on vient écrire le message qui doit s'afficher quand
                 // une erreur de connexion à la base est produite

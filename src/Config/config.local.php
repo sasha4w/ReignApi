@@ -6,7 +6,7 @@
 /**
  * le DSN de la base
  */
-define('APP_DB_SQLITE', 'mysql:host=localhost;dbname=db.ReignsWebapp;charset=UTF8');
+define('APP_DB_DSN', 'mysql:host=localhost;dbname=db.reignswebapp;charset=UTF8');
 
 
 define('APP_DB_USER', 'root');
