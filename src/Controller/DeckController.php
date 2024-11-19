@@ -16,15 +16,35 @@ class DeckController extends Controller
      * @route [get] /
      *
      */
-    public function index()
+    public function getDecks()
     {
+        // Vérifier si l'utilisateur est connecté
         $isLoggedIn = isset($_SESSION['ad_mail_admin']);
         $ad_mail_admin = $isLoggedIn ? $_SESSION['ad_mail_admin'] : null;
-        // récupérer les informations sur les decks
+    
+        // Récupérer les informations sur les decks
         $decks = Deck::getInstance()->findAll();
-        // dans les vues TWIG, on peut utiliser la variable decks
-        $this->display('decks/index.html.twig', compact('decks', 'isLoggedIn', 'ad_mail_admin'));
+    
+        // Vérifier si des decks ont été récupérés
+        if ($decks) {
+            // Définir l'en-tête Content-Type pour une réponse JSON
+            header("Content-Type: application/json");
+    
+            // Retourner les decks sous forme de JSON
+            echo json_encode([
+                'status' => 'success',
+                'decks' => $decks
+            ]);
+        } else {
+            // Si aucune donnée n'est trouvée, retourner un message d'erreur
+            header("Content-Type: application/json");
+            echo json_encode([
+                'status' => 'error',
+                'message' => 'Aucun deck trouvé'
+            ]);
+        }
     }
+    
 
     /**
      * Afficher le formulaire de saisie d'un nouvel deck ou traiter les

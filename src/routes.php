@@ -24,6 +24,10 @@ return [
 
     ///// DECK /////
 
+    /// GET ///
+    
+    ['GET', '/api/v1/decks', 'deck@getDecks'], 
+
     ///// CARTE /////
 
     /// GET ///

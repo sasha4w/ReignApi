@@ -64,3 +64,4 @@
     exception-line: 93
     exception-file: 'C:\xampp\htdocs\ReignApi\src\Controller\CarteController.php'
     exception-code: 'Undefined variable $_SESSION'
+[2024-11-19 17:33:18]	[ALERT]	500 - la méthode getDecks n'existe pas
