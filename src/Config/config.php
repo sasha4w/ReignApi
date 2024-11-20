@@ -1,4 +1,5 @@
 <?php
+
 /*
   Fichier : src/Config/config.php
 

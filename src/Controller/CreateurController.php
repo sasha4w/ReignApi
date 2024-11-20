@@ -8,9 +8,13 @@ use App\Helper\HTTP;
 use App\Helper\Security;
 use App\Model\Createur;
 use DateTime;
-
+use Firebase\JWT\JWT;
+use Firebase\JWT\Key;
+use Dotenv\Dotenv;
 class CreateurController extends Controller
 {
+
+
     /**
      * Page d'accueil pour lister tous les createurs.
      * @route [get] /
@@ -34,53 +38,57 @@ class CreateurController extends Controller
      */
     public function create()
     {
-        if ($this->isGetMethod()) {
-            $this->display('createurs/create.html.twig');
-        } else {
-            // Récupérer et nettoyer les données du formulaire
-            $nom_createur = trim($_POST['nom_createur']);
-            $ad_mail_createur = filter_var(trim($_POST['ad_mail_createur']), FILTER_SANITIZE_EMAIL);
-            $mdp_createur = trim($_POST['mdp_createur']);
-            $genre = trim($_POST['genre']);
-            $ddn = trim($_POST['ddn']);
+        header("Access-Control-Allow-Origin: *");
+        header("Access-Control-Allow-Headers: Content-Type");
+        header("Content-Type: application/json");
     
-            // Valider l'email
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            // Récupérer les données JSON de la requête
+            $data = json_decode(file_get_contents('php://input'), true);
+    
+            $nom_createur = trim($data['nom_createur'] ?? '');
+            $ad_mail_createur = filter_var(trim($data['ad_mail_createur'] ?? ''), FILTER_SANITIZE_EMAIL);
+            $mdp_createur = trim($data['mdp_createur'] ?? '');
+            $genre = trim($data['genre'] ?? '');
+            $ddn = trim($data['ddn'] ?? '');
+    
+            // Valider les données
             if (!filter_var($ad_mail_createur, FILTER_VALIDATE_EMAIL)) {
-                $error = 'Email non valide.';
-                return $this->display('createurs/create.html.twig', compact('error'));
+                http_response_code(400);
+                echo json_encode(['error' => 'Email non valide.']);
+                return;
             }
     
-            // Vérifier si les champs obligatoires sont présents
             if (empty($nom_createur) || empty($ad_mail_createur) || empty($mdp_createur) || empty($genre) || empty($ddn)) {
-                $error = 'Tous les champs obligatoires doivent être remplis.';
-                return $this->display('createurs/create.html.twig', compact('error'));
+                http_response_code(400);
+                echo json_encode(['error' => 'Tous les champs obligatoires doivent être remplis.']);
+                return;
             }
     
-            // Valider le genre et la date de naissance
             $validGenres = ['Homme', 'Femme', 'Autres'];
             if (!in_array($genre, $validGenres)) {
-                $error = 'Le genre sélectionné est invalide.';
-                return $this->display('createurs/create.html.twig', compact('error'));
+                http_response_code(400);
+                echo json_encode(['error' => 'Genre invalide.']);
+                return;
             }
     
             if (!DateTime::createFromFormat('Y-m-d', $ddn)) {
-                $error = 'La date de naissance doit être au format YYYY-MM-DD.';
-                return $this->display('createurs/create.html.twig', compact('error'));
+                http_response_code(400);
+                echo json_encode(['error' => 'La date de naissance doit être au format YYYY-MM-DD.']);
+                return;
             }
     
-            // Vérifier l'unicité de l'email
             $existingCreator = Createur::getInstance()->findOneBy(['ad_mail_createur' => $ad_mail_createur]);
             if ($existingCreator) {
-                $error = "L'adresse e-mail est déjà utilisée.";
-                return $this->display('createurs/create.html.twig', compact('error'));
+                http_response_code(409); // Conflit
+                echo json_encode(['error' => "L'adresse e-mail est déjà utilisée."]);
+                return;
             }
     
-            // Hacher le mot de passe avant de l'enregistrer
             $hashedPassword = password_hash($mdp_createur, PASSWORD_BCRYPT);
     
             try {
-                // Insérer les données dans la base de données
-                Createur::getInstance()->create([
+                $createurId = Createur::getInstance()->create([
                     'nom_createur' => $nom_createur,
                     'ad_mail_createur' => $ad_mail_createur,
                     'mdp_createur' => $hashedPassword,
@@ -88,67 +96,99 @@ class CreateurController extends Controller
                     'ddn' => $ddn,
                 ]);
     
-                // Redirection après succès
-                HTTP::redirect('/createurs');
-    
+                http_response_code(201);
+                echo json_encode(['message' => 'Créateur créé avec succès.', 'id' => $createurId]);
             } catch (PDOException $e) {
-                // En cas d'autre erreur SQL
-                $error = "Une erreur s'est produite lors de l'inscription.";
-                return $this->display('createurs/create.html.twig', compact('error'));
+                http_response_code(500);
+                echo json_encode(['error' => "Erreur lors de la création."]);
             }
+        } else {
+            http_response_code(405);
+            echo json_encode(['error' => 'Méthode non autorisée.']);
         }
     }
     
     
     
+    
     public function login()
     {
-        if ($this->isGetMethod()) {
-            $this->display('createurs/login.html.twig');
-        } else {
-            // Récupérer et nettoyer les données du formulaire
-            $nom_createur = trim($_POST['nom_createur']);
-            $ad_mail_createur = filter_var(trim($_POST['ad_mail_createur']), FILTER_SANITIZE_EMAIL);
-            $mdp_createur = trim($_POST['mdp_createur']);
+        header("Access-Control-Allow-Origin: *");
+        header("Access-Control-Allow-Headers: Content-Type");
+        header("Content-Type: application/json");
+        
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $dotenv = Dotenv::createImmutable(__DIR__ . '/../../');  
+            $dotenv->load();
+            $data = json_decode(file_get_contents('php://input'), true);
     
-            // Valider l'email
+            $ad_mail_createur = filter_var(trim($data['ad_mail_createur'] ?? ''), FILTER_SANITIZE_EMAIL);
+            $mdp_createur = trim($data['mdp_createur'] ?? '');
+    
             if (!filter_var($ad_mail_createur, FILTER_VALIDATE_EMAIL)) {
-                $error = 'Email non valide';
-                return $this->display('createurs/login.html.twig', compact('error'));
+                http_response_code(400);
+                echo json_encode(['error' => 'Email non valide.']);
+                return;
             }
     
-            // Vérifier si les champs obligatoires sont présents
-            if (empty($ad_mail_createur) || empty($mdp_createur) || empty($nom_createur)) {
-                $error = 'Tous les champs obligatoires doivent être remplis.';
-                return $this->display('createurs/login.html.twig', compact('error'));
+            if (empty($ad_mail_createur) || empty($mdp_createur)) {
+                http_response_code(400);
+                echo json_encode(['error' => 'Les champs email et mot de passe sont requis.']);
+                return;
             }
     
-            // Récupérer le créateur à partir de l'email
             $createur = Createur::getInstance()->findOneBy(['ad_mail_createur' => $ad_mail_createur]);
-
+    
             if (!$createur) {
-                // Si le créateur n'existe pas, afficher une erreur
-                $error = 'Créateur non trouvé.';
-                return $this->display('createurs/login.html.twig', compact('error'));
+                http_response_code(404); // Non trouvé
+                echo json_encode(['error' => 'Créateur non trouvé.']);
+                return;
             }
     
-            // Vérifier le mot de passe
             if (!password_verify($mdp_createur, $createur['mdp_createur'])) {
-                // Si le mot de passe est incorrect, afficher une erreur
-                $error = 'Mot de passe incorrect.';
-                return $this->display('createurs/login.html.twig', compact('error'));
+                http_response_code(401); // Non autorisé
+                echo json_encode(['error' => 'Mot de passe incorrect.']);
+                return;
             }
     
-            // Si tout est correct, démarrer une session pour l'utilisateur
-            $_SESSION['ad_mail_createur'] = $createur['ad_mail_createur'];
-            $_SESSION['nom_createur'] = $createur['nom_createur'];
-            $_SESSION['id_createur'] = $createur['id_createur'];
-
-            // Rediriger vers la page d'accueil ou une autre page
-            HTTP::redirect('/createurs');
-        } 
+            // Récupérer la clé secrète directement ici
+            $jwtSecret = $_ENV['JWT_SECRET'];
+            if ($jwtSecret === false) {
+                http_response_code(500);
+                echo json_encode(['error' => 'Clé secrète JWT manquante.']);
+                return;
+            }
+    
+            // Générer le token JWT
+            $payload = [
+                'id_createur' => $createur['id_createur'],
+                'ad_mail_createur' => $createur['ad_mail_createur'],
+                'nom_createur' => $createur['nom_createur'],
+                'iat' => time(),
+                'exp' => time() + 3600, // Expire dans une heure
+            ];
+    
+            try {
+                $jwt = JWT::encode($payload, $jwtSecret, 'HS256');
+    
+                // Log du token généré pour le débogage
+                error_log("Token JWT généré : " . $jwt);
+    
+                http_response_code(200);
+                echo json_encode(['token' => $jwt]);
+            } catch (Exception $e) {
+                http_response_code(500);
+                echo json_encode(['error' => 'Erreur lors de la génération du token.']);
+            }
+        } else {
+            http_response_code(405);
+            echo json_encode(['error' => 'Méthode non autorisée.']);
+        }
     }
-
+    
+    
+    
+    
     public function logout()
     {
         // Démarrer ou reprendre la session

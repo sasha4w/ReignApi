@@ -15,6 +15,8 @@ require '../vendor/autoload.php';
   Intégrer les constantes diverses et celles de configuration pour la base
 */
 require 'Config/config.php';
+// Charger dotenv pour charger les variables d'environnement à partir du fichier .env
+
 
 /*
   ==3==

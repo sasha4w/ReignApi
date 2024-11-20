@@ -1,5 +1,7 @@
 <?php
 
+
+
 if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
     // Indiquer que toutes les origines sont autorisées
     header("Access-Control-Allow-Origin: *");
@@ -17,4 +19,8 @@ header("Access-Control-Allow-Origin: *"); // Autoriser toutes les origines
 header("Access-Control-Allow-Methods: GET, POST, PUT, PATCH, DELETE"); // Autoriser ces méthodes
 header("Access-Control-Allow-Headers: Content-Type, Authorization"); // Autoriser ces en-têtes
 
-require '../src/bootstrap.php'; ?>
+require '../src/bootstrap.php'; 
+
+
+
+?>

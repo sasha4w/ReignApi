@@ -1,3 +1,188 @@
 [2024-11-20 13:34:28]	[ALERT]	404 - commande non existante :: /
 [2024-11-20 13:34:59]	[ALERT]	404 - commande non existante :: /
 [2024-11-20 13:35:00]	[ALERT]	404 - commande non existante :: /
+[2024-11-20 14:11:20]	[ALERT]	404 - commande non existante :: /api/v1/createur/login
+
+[2024-11-20 14:12:35]	[ALERT]	404 - commande non existante :: /api/v1/createur/
+[2024-11-20 14:13:01]	[ALERT]	404 - commande non existante :: /api/v1/createur/
+[2024-11-20 14:21:21]	[ALERT]	404 - commande non existante :: /api/v1/createur/login
+
+[2024-11-20 14:22:53]	[ALERT]	404 - commande non existante :: /api/v1/createur/login
+
+[2024-11-20 14:22:57]	[ALERT]	404 - commande non existante :: /api/v1/createur/login
+
+[2024-11-20 14:23:15]	[ALERT]	404 - commande non existante :: /api/v1/createur/login
+
+[2024-11-20 14:27:32]	[ALERT]	404 - commande non existante :: /api/v1/createur/login
+
+[2024-11-20 14:29:57]	[ALERT]	404 - commande non existante :: /api/v1/createur/login
+
+[2024-11-20 14:30:09]	[ALERT]	404 - commande non existante :: /api/v1/createur/login
+
+[2024-11-20 14:30:10]	[ALERT]	404 - commande non existante :: /api/v1/createur/login
+
+[2024-11-20 14:30:12]	[ALERT]	404 - commande non existante :: /api/v1/createur/login
+
+[2024-11-20 14:30:13]	[ALERT]	404 - commande non existante :: /api/v1/createur/login
+
+[2024-11-20 14:30:14]	[ALERT]	404 - commande non existante :: /api/v1/createur/login
+
+[2024-11-20 14:30:15]	[ALERT]	404 - commande non existante :: /api/v1/createur/login
+
+[2024-11-20 14:30:15]	[ALERT]	404 - commande non existante :: /api/v1/createur/login
+
+[2024-11-20 14:35:16]	[ALERT]	404 - erreur dans le processus de traitement du routage
+    routeInfo: array(
+        0 => 1,
+        1 => 'createur@login',
+        2 => array(),
+    )
+    exception-line: 249
+    exception-file: 'C:\xampp\htdocs\ReignApi\vendor\firebase\php-jwt\src\JWT.php'
+    exception-code: 'key must be a string when using hmac'
+[2024-11-20 14:46:19]	[ALERT]	404 - erreur dans le processus de traitement du routage
+    routeInfo: array(
+        0 => 1,
+        1 => 'createur@login',
+        2 => array(),
+    )
+    exception-line: 249
+    exception-file: 'C:\xampp\htdocs\ReignApi\vendor\firebase\php-jwt\src\JWT.php'
+    exception-code: 'key must be a string when using hmac'
+[2024-11-20 14:46:32]	[ALERT]	404 - erreur dans le processus de traitement du routage
+    routeInfo: array(
+        0 => 1,
+        1 => 'createur@login',
+        2 => array(),
+    )
+    exception-line: 249
+    exception-file: 'C:\xampp\htdocs\ReignApi\vendor\firebase\php-jwt\src\JWT.php'
+    exception-code: 'key must be a string when using hmac'
+[2024-11-20 14:48:35]	[ALERT]	404 - erreur dans le processus de traitement du routage
+    routeInfo: array(
+        0 => 1,
+        1 => 'createur@login',
+        2 => array(),
+    )
+    exception-line: 249
+    exception-file: 'C:\xampp\htdocs\ReignApi\vendor\firebase\php-jwt\src\JWT.php'
+    exception-code: 'key must be a string when using hmac'
+[2024-11-20 14:51:19]	[ALERT]	404 - commande non existante :: /
+[2024-11-20 14:51:31]	[ALERT]	404 - commande non existante :: /
+[2024-11-20 14:51:54]	[ALERT]	404 - commande non existante :: /
+[2024-11-20 14:53:46]	[ALERT]	404 - commande non existante :: /
+[2024-11-20 14:54:45]	[ALERT]	404 - commande non existante :: /
+[2024-11-20 14:54:46]	[ALERT]	404 - commande non existante :: /
+[2024-11-20 14:56:30]	[ALERT]	404 - commande non existante :: /
+[2024-11-20 14:57:12]	[ALERT]	404 - commande non existante :: /
+[2024-11-20 14:59:41]	[ALERT]	404 - commande non existante :: /
+[2024-11-20 15:01:44]	[ALERT]	404 - commande non existante :: /
+[2024-11-20 15:02:01]	[ALERT]	404 - commande non existante :: /
+[2024-11-20 15:04:10]	[ALERT]	404 - erreur dans le processus de traitement du routage
+    routeInfo: array(
+        0 => 1,
+        1 => 'createur@login',
+        2 => array(),
+    )
+    exception-line: 249
+    exception-file: 'C:\xampp\htdocs\ReignApi\vendor\firebase\php-jwt\src\JWT.php'
+    exception-code: 'key must be a string when using hmac'
+[2024-11-20 15:05:50]	[ALERT]	404 - erreur dans le processus de traitement du routage
+    routeInfo: array(
+        0 => 1,
+        1 => 'createur@login',
+        2 => array(),
+    )
+    exception-line: 249
+    exception-file: 'C:\xampp\htdocs\ReignApi\vendor\firebase\php-jwt\src\JWT.php'
+    exception-code: 'key must be a string when using hmac'
+[2024-11-20 15:05:51]	[ALERT]	404 - erreur dans le processus de traitement du routage
+    routeInfo: array(
+        0 => 1,
+        1 => 'createur@login',
+        2 => array(),
+    )
+    exception-line: 249
+    exception-file: 'C:\xampp\htdocs\ReignApi\vendor\firebase\php-jwt\src\JWT.php'
+    exception-code: 'key must be a string when using hmac'
+[2024-11-20 15:05:52]	[ALERT]	404 - erreur dans le processus de traitement du routage
+    routeInfo: array(
+        0 => 1,
+        1 => 'createur@login',
+        2 => array(),
+    )
+    exception-line: 249
+    exception-file: 'C:\xampp\htdocs\ReignApi\vendor\firebase\php-jwt\src\JWT.php'
+    exception-code: 'key must be a string when using hmac'
+[2024-11-20 15:05:53]	[ALERT]	404 - erreur dans le processus de traitement du routage
+    routeInfo: array(
+        0 => 1,
+        1 => 'createur@login',
+        2 => array(),
+    )
+    exception-line: 249
+    exception-file: 'C:\xampp\htdocs\ReignApi\vendor\firebase\php-jwt\src\JWT.php'
+    exception-code: 'key must be a string when using hmac'
+[2024-11-20 15:05:54]	[ALERT]	404 - erreur dans le processus de traitement du routage
+    routeInfo: array(
+        0 => 1,
+        1 => 'createur@login',
+        2 => array(),
+    )
+    exception-line: 249
+    exception-file: 'C:\xampp\htdocs\ReignApi\vendor\firebase\php-jwt\src\JWT.php'
+    exception-code: 'key must be a string when using hmac'
+[2024-11-20 15:05:54]	[ALERT]	404 - erreur dans le processus de traitement du routage
+    routeInfo: array(
+        0 => 1,
+        1 => 'createur@login',
+        2 => array(),
+    )
+    exception-line: 249
+    exception-file: 'C:\xampp\htdocs\ReignApi\vendor\firebase\php-jwt\src\JWT.php'
+    exception-code: 'key must be a string when using hmac'
+[2024-11-20 15:05:55]	[ALERT]	404 - erreur dans le processus de traitement du routage
+    routeInfo: array(
+        0 => 1,
+        1 => 'createur@login',
+        2 => array(),
+    )
+    exception-line: 249
+    exception-file: 'C:\xampp\htdocs\ReignApi\vendor\firebase\php-jwt\src\JWT.php'
+    exception-code: 'key must be a string when using hmac'
+[2024-11-20 15:15:55]	[ALERT]	404 - erreur dans le processus de traitement du routage
+    routeInfo: array(
+        0 => 1,
+        1 => 'createur@login',
+        2 => array(),
+    )
+    exception-line: 68
+    exception-file: 'C:\xampp\htdocs\ReignApi\vendor\vlucas\phpdotenv\src\Store\FileStore.php'
+    exception-code: 'Unable to read any of the environment file(s) at [C:\xampp\htdocs\ReignApi\src\Controller/../\.env].'
+[2024-11-20 15:23:43]	[ALERT]	404 - erreur dans le processus de traitement du routage
+    routeInfo: array(
+        0 => 1,
+        1 => 'createur@login',
+        2 => array(),
+    )
+    exception-line: 68
+    exception-file: 'C:\xampp\htdocs\ReignApi\vendor\vlucas\phpdotenv\src\Store\FileStore.php'
+    exception-code: 'Unable to read any of the environment file(s) at [C:\xampp\htdocs\ReignApi\src\Controller\.env].'
+[2024-11-20 15:33:21]	[ALERT]	404 - erreur dans le processus de traitement du routage
+    routeInfo: array(
+        0 => 1,
+        1 => 'createur@login',
+        2 => array(),
+    )
+    exception-line: 153
+    exception-file: 'C:\xampp\htdocs\ReignApi\src\Controller\CreateurController.php'
+    exception-code: 'Undefined array key "JWT_SECRET"'
+[2024-11-20 15:34:00]	[ALERT]	404 - erreur dans le processus de traitement du routage
+    routeInfo: array(
+        0 => 1,
+        1 => 'createur@login',
+        2 => array(),
+    )
+    exception-line: 155
+    exception-file: 'C:\xampp\htdocs\ReignApi\src\Controller\CreateurController.php'
+    exception-code: 'Undefined array key "JWT_SECRET"'

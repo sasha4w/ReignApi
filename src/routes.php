@@ -36,6 +36,8 @@ return [
        
     /// POST ///
     ['POST', '/api/v1/createur', 'createur@create'],
+    ['POST', '/api/v1/createur/login', 'createur@login'],
+
 
     /// PATCH ///
     
