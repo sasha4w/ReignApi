@@ -20,22 +20,48 @@ return [
 
     ///// ADMIN /////
 
+    /// GET ///
+       
+    /// POST ///
+    ['POST', '/api/v1/administrateur', 'administrateur@create'],
+
+    /// PATCH ///
+    
+    /// DELETE ///
+
     ///// CREATEUR /////
+    
+
+    /// GET ///
+       
+    /// POST ///
+    ['POST', '/api/v1/createur', 'createur@create'],
+
+    /// PATCH ///
+    
+    /// DELETE ///
 
     ///// DECK /////
 
     /// GET ///
     
     ['GET', '/api/v1/decks', 'deck@getDecks'], 
+   
+    /// POST ///
+    ['POST', '/api/v1/decks', 'deck@create'],
+
+    /// PATCH ///
+    
+    /// DELETE ///
 
     ///// CARTE /////
 
     /// GET ///
-    ['GET', '/api/v1/cartes/admin', 'carte@getCartesForAdmin'], 
+    ['GET', '/api/v1/cartes/administrateur', 'carte@getCartesForAdmin'], 
     ['GET', '/api/v1/cartes/createur/{id}', 'carte@getCartesForCreateur'],
     ['GET', '/api/v1/cartes/{id:\d+}', 'carte@index'], 
     ['GET', '/api/v1/createur/cartes', 'carte@index'],  
-    ['GET', '/api/v1/admin/cartes', 'carte@index'],  
+    ['GET', '/api/v1/administrateur/cartes', 'carte@index'],  
     
     /// POST ///
 
@@ -44,7 +70,23 @@ return [
     /// DELETE ///
     
     ///// CARTE ALEATOIRE /////
+    
+    /// GET ///
+       
+    /// POST ///
+
+    /// PATCH ///
+    
+    /// DELETE ///
 
     ///// CREATEUR BANNI /////
+    
+    /// GET ///
+       
+    /// POST ///
+
+    /// PATCH ///
+    
+    /// DELETE ///
 
 ];

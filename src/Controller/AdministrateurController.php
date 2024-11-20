@@ -34,64 +34,137 @@ class AdministrateurController extends Controller
      */
     public function create()
     {
-        if ($this->isGetMethod()) {
-            $this->display('administrateurs/create.html.twig');
+        // Définir les en-têtes pour indiquer une réponse JSON
+        header("Access-Control-Allow-Origin: *");
+        header("Access-Control-Allow-Headers: Content-Type");
+        header("Content-Type: application/json");
+    
+        // Vérifier si la requête est une méthode POST
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            // Récupérer les données JSON envoyées dans le corps de la requête
+            $data = json_decode(file_get_contents('php://input'), true);
+    
+            // Vérification des champs requis
+            if (isset($data['ad_mail_admin']) && isset($data['mdp_admin']) && isset($data['display_name'])) {
+                try {
+                    // Insérer l'administrateur dans la base de données
+                    $adminId = Administrateur::getInstance()->create([
+                        'ad_mail_admin' => trim($data['ad_mail_admin']),
+                        'mdp_admin' => password_hash(trim($data['mdp_admin']), PASSWORD_DEFAULT), // Hachage du mot de passe
+                        'display_name' => trim($data['display_name']),
+                    ]);
+    
+                    // Récupérer les informations de l'administrateur créé
+                    $admin = Administrateur::getInstance()->find($adminId);
+    
+                    // Répondre avec les données de l'administrateur créé
+                    http_response_code(201); // 201 Created
+                    echo json_encode([
+                        'status' => 'success',
+                        'admin' => $admin,
+                    ]);
+                } catch (\Exception $e) {
+                    // En cas d'erreur lors de la création
+                    http_response_code(500); // 500 Internal Server Error
+                    echo json_encode(['error' => 'Erreur lors de la création de l\'administrateur', 'details' => $e->getMessage()]);
+                }
+            } else {
+                // Si les champs requis ne sont pas présents
+                http_response_code(400); // 400 Bad Request
+                echo json_encode(['error' => 'Invalid input data: "ad_mail_admin", "mdp_admin", and "display_name" are required']);
+            }
         } else {
-
-            // 2. exécuter la requête d'insertion
-            Administrateur::getInstance()->create([
-                'email' => trim($_POST['email']),
-                'password' => trim($_POST['password']),
-                'display_name' => trim($_POST['display_name']),
-            ]);
-            HTTP::redirect('/');
+            // Si ce n'est pas une méthode POST
+            http_response_code(405); // 405 Method Not Allowed
+            echo json_encode(['error' => 'Method not allowed']);
         }
     }
+    
+    
     public function login()
     {
-        if ($this->isGetMethod()) {
-            $this->display('administrateurs/login.html.twig');
-        } else {
-            // Récupérer et nettoyer les données du formulaire
-            $ad_mail_admin = filter_var(trim($_POST['ad_mail_admin']), FILTER_SANITIZE_EMAIL);
-            $mdp_admin = trim($_POST['mdp_admin']);
+        // Définir les en-têtes pour une réponse JSON
+        header("Access-Control-Allow-Origin: *");
+        header("Access-Control-Allow-Headers: Content-Type");
+        header("Content-Type: application/json");
+    
+        // Vérifier si la requête est une méthode POST
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            // Récupérer les données JSON envoyées dans le corps de la requête
+            $data = json_decode(file_get_contents('php://input'), true);
+    
+            // Vérifier que les champs nécessaires sont présents
+            if (!isset($data['ad_mail_admin']) || !isset($data['mdp_admin'])) {
+                http_response_code(400); // 400 Bad Request
+                echo json_encode(['error' => 'Les champs "ad_mail_admin" et "mdp_admin" sont obligatoires.']);
+                return;
+            }
+    
+            // Nettoyer les données
+            $ad_mail_admin = filter_var(trim($data['ad_mail_admin']), FILTER_SANITIZE_EMAIL);
+            $mdp_admin = trim($data['mdp_admin']);
     
             // Valider l'email
             if (!filter_var($ad_mail_admin, FILTER_VALIDATE_EMAIL)) {
-                $error = 'Email non valide';
-                return $this->display('administrateurs/login.html.twig', compact('error'));
+                http_response_code(400); // 400 Bad Request
+                echo json_encode(['error' => 'Email non valide.']);
+                return;
             }
     
-            // Vérifier si les champs obligatoires sont présents
-            if (empty($ad_mail_admin) || empty($mdp_admin)) {
-                $error = 'Tous les champs obligatoires doivent être remplis.';
-                return $this->display('administrateurs/login.html.twig', compact('error'));
-            }
-    
-            // Récupérer le administrateur à partir de l'email
+            // Rechercher l'administrateur par email
             $administrateur = Administrateur::getInstance()->findOneBy(['ad_mail_admin' => $ad_mail_admin]);
     
             if (!$administrateur) {
-                // Si le administrateur n'existe pas, afficher une erreur
-                $error = 'administrateur non trouvé.';
-                return $this->display('administrateurs/login.html.twig', compact('error'));
+                http_response_code(404); // 404 Not Found
+                echo json_encode(['error' => 'Administrateur non trouvé.']);
+                return;
             }
     
             // Vérifier le mot de passe
             if (!password_verify($mdp_admin, $administrateur['mdp_admin'])) {
-                // Si le mot de passe est incorrect, afficher une erreur
-                $error = 'Mot de passe incorrect.';
-                return $this->display('administrateurs/login.html.twig', compact('error'));
+                http_response_code(401); // 401 Unauthorized
+                echo json_encode(['error' => 'Mot de passe incorrect.']);
+                return;
             }
     
-            // Si tout est correct, démarrer une session pour l'utilisateur
-            $_SESSION['ad_mail_admin'] = $administrateur['ad_mail_admin'];
-            $_SESSION['id_administrateur'] = $administrateur['id_administrateur'];
+            // Générer un token JWT
+            $payload = [
+                'id_administrateur' => $administrateur['id_administrateur'],
+                'ad_mail_admin' => $administrateur['ad_mail_admin'],
+                'iat' => time(), // Issued at
+                'exp' => time() + 3600 // Expiration (1 heure)
+            ];
     
-            // Rediriger vers la page d'accueil ou une autre page
-            HTTP::redirect('/administrateurs');
-        } 
+            $secretKey = "votre_cle_secrete"; // Assurez-vous de garder cette clé sécurisée
+            $jwt = $this->generateJWT($payload, $secretKey);
+    
+            // Répondre avec le token
+            http_response_code(200); // 200 OK
+            echo json_encode([
+                'status' => 'success',
+                'token' => $jwt,
+                'admin' => [
+                    'id_administrateur' => $administrateur['id_administrateur'],
+                    'ad_mail_admin' => $administrateur['ad_mail_admin'],
+                    'display_name' => $administrateur['display_name'],
+                ],
+            ]);
+        } else {
+            http_response_code(405); // 405 Method Not Allowed
+            echo json_encode(['error' => 'Méthode non autorisée.']);
+        }
     }
+    
+    // Fonction pour générer un JWT
+    private function generateJWT(array $payload, string $key)
+    {
+        $header = base64_encode(json_encode(['typ' => 'JWT', 'alg' => 'HS256']));
+        $body = base64_encode(json_encode($payload));
+        $signature = hash_hmac('sha256', "$header.$body", $key, true);
+        $signatureEncoded = base64_encode($signature);
+        return "$header.$body.$signatureEncoded";
+    }
+    
 
     public function logout()
     {

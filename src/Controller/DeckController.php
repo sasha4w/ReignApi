@@ -55,40 +55,86 @@ class DeckController extends Controller
      */
     public function create()
     {
-        if (!isset($_SESSION['id_administrateur'])) {
-            HTTP::redirect('/administrateur/connexion');  // Rediriger vers la page de connexion si pas authentifié
-            return;
-        }
-        if ($this->isGetMethod()) {
-            $this->display('decks/create.html.twig');
-        } else {
-            $titre_deck = $_POST['titre_deck'];
-            $date_fin_deck = $_POST['date_fin_deck'];
-            $nb_cartes = $_POST['nb_cartes'];
-            $id_administrateur = $_SESSION['id_administrateur'];
-            // Vérifier si les champs obligatoires sont présents
-            if (empty($nb_cartes) || empty($date_fin_deck) || empty($titre_deck)) {
-                $error = 'Tous les champs obligatoires doivent être remplis.';
-                return $this->display('decks/create.html.twig', compact('error'));
+        // Définir les en-têtes pour une réponse JSON
+        header("Access-Control-Allow-Origin: *");
+        header("Access-Control-Allow-Headers: Content-Type");
+        header("Content-Type: application/json");
+    
+        // Vérifier si la requête est une méthode POST
+        if ($this->isPostMethod()) {
+            // Récupérer les données JSON envoyées dans le corps de la requête
+            $data = json_decode(file_get_contents('php://input'), true);
+    
+            // Vérification des données envoyées
+            if (!isset($data['titre_deck']) || !isset($data['date_fin_deck']) || !isset($data['nb_cartes'])) {
+                // Si les champs obligatoires sont manquants
+                http_response_code(400); // Code HTTP 400 Bad Request
+                echo json_encode(['error' => 'Tous les champs obligatoires doivent être remplis.']);
+                return;
             }
+    
+            // Extraire les données
+            $titre_deck = $data['titre_deck'];
+            $date_fin_deck = $data['date_fin_deck'];
+            $nb_cartes = $data['nb_cartes'];
+    
+            // Validation de la date
             if (!DateTime::createFromFormat('Y-m-d', $date_fin_deck)) {
-                $error = 'Tous les champs obligatoires doivent être remplis.';
-                return $this->display('decks/create.html.twig', compact('error'));
+                // Si la date n'est pas valide
+                http_response_code(400); // Code HTTP 400 Bad Request
+                echo json_encode(['error' => 'Format de la date invalide. Utilisez le format YYYY-MM-DD.']);
+                return;
             }
+    
+            // Validation du nombre de cartes
             if (!is_numeric($nb_cartes) || intval($nb_cartes) <= 0) {
-                $error = 'Le nombre de cartes doit être un nombre entier positif.';
-                return $this->display('decks/create.html.twig', compact('error'));
-            } 
-            // 2. exécuter la requête d'insertion
-            Deck::getInstance()->create([
+                // Si le nombre de cartes n'est pas un nombre entier positif
+                http_response_code(400); // Code HTTP 400 Bad Request
+                echo json_encode(['error' => 'Le nombre de cartes doit être un entier positif.']);
+                return;
+            }
+    
+            // Récupérer l'ID de l'administrateur de la session (si disponible)
+            if (!isset($_SESSION['id_administrateur'])) {
+                http_response_code(401); // Code HTTP 401 Unauthorized
+                echo json_encode(['error' => 'Utilisateur non authentifié.']);
+                return;
+            }
+            $id_administrateur = $_SESSION['id_administrateur'];
+    
+            // 2. Exécuter la requête pour créer un nouveau deck
+            $deckId = Deck::getInstance()->create([
                 'titre_deck' => $titre_deck,
                 'date_fin_deck' => $date_fin_deck,
                 'nb_cartes' => intval($nb_cartes),
                 'id_administrateur' => $id_administrateur,
             ]);
-            HTTP::redirect('/decks');
+    
+            // Si le deck a été créé avec succès, renvoyer les informations du deck créé
+            if ($deckId) {
+                http_response_code(201); // Code HTTP 201 Created
+                echo json_encode([
+                    'status' => 'success',
+                    'deck' => [
+                        'id_deck' => $deckId,
+                        'titre_deck' => $titre_deck,
+                        'date_fin_deck' => $date_fin_deck,
+                        'nb_cartes' => $nb_cartes,
+                        'id_administrateur' => $id_administrateur,
+                    ]
+                ]);
+            } else {
+                // Si la création échoue pour une raison quelconque
+                http_response_code(500); // Code HTTP 500 Internal Server Error
+                echo json_encode(['error' => 'Erreur lors de la création du deck.']);
+            }
+        } else {
+            // Si ce n'est pas une méthode POST
+            http_response_code(405); // Code HTTP 405 Method Not Allowed
+            echo json_encode(['error' => 'Méthode non autorisée.']);
         }
     }
+    
     public function edit(int|string $id)
     {
         // Forcer l'ID à être un entier si nécessaire
