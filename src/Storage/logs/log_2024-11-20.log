@@ -186,3 +186,4 @@
     exception-line: 155
     exception-file: 'C:\xampp\htdocs\ReignApi\src\Controller\CreateurController.php'
     exception-code: 'Undefined array key "JWT_SECRET"'
+[2024-11-20 15:35:16]	[ALERT]	404 - commande non existante :: /api/v1/cartes/admin

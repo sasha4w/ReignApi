@@ -7,6 +7,9 @@ namespace App\Controller;
 use App\Helper\HTTP;
 use App\Helper\Security;
 use App\Model\Administrateur;
+use Firebase\JWT\JWT;
+use Firebase\JWT\Key;
+use Dotenv\Dotenv;
 
 class AdministrateurController extends Controller
 {
@@ -49,49 +52,84 @@ class AdministrateurController extends Controller
     }
     public function login()
     {
-        if ($this->isGetMethod()) {
-            $this->display('administrateurs/login.html.twig');
-        } else {
-            // Récupérer et nettoyer les données du formulaire
-            $ad_mail_admin = filter_var(trim($_POST['ad_mail_admin']), FILTER_SANITIZE_EMAIL);
-            $mdp_admin = trim($_POST['mdp_admin']);
+        header("Access-Control-Allow-Origin: *");
+        header("Access-Control-Allow-Headers: Content-Type");
+        header("Content-Type: application/json");
+        
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            // Charger les variables d'environnement
+            $dotenv = Dotenv::createImmutable(__DIR__ . '/../../');  
+            $dotenv->load();
+            $data = json_decode(file_get_contents('php://input'), true);
+    
+            // Récupérer et nettoyer les données
+            $ad_mail_admin = filter_var(trim($data['ad_mail_admin'] ?? ''), FILTER_SANITIZE_EMAIL);
+            $mdp_admin = trim($data['mdp_admin'] ?? '');
     
             // Valider l'email
             if (!filter_var($ad_mail_admin, FILTER_VALIDATE_EMAIL)) {
-                $error = 'Email non valide';
-                return $this->display('administrateurs/login.html.twig', compact('error'));
+                http_response_code(400);
+                echo json_encode(['error' => 'Email non valide.']);
+                return;
             }
     
             // Vérifier si les champs obligatoires sont présents
             if (empty($ad_mail_admin) || empty($mdp_admin)) {
-                $error = 'Tous les champs obligatoires doivent être remplis.';
-                return $this->display('administrateurs/login.html.twig', compact('error'));
+                http_response_code(400);
+                echo json_encode(['error' => 'Les champs email et mot de passe sont requis.']);
+                return;
             }
     
-            // Récupérer le administrateur à partir de l'email
+            // Rechercher l'administrateur par email
             $administrateur = Administrateur::getInstance()->findOneBy(['ad_mail_admin' => $ad_mail_admin]);
     
             if (!$administrateur) {
-                // Si le administrateur n'existe pas, afficher une erreur
-                $error = 'administrateur non trouvé.';
-                return $this->display('administrateurs/login.html.twig', compact('error'));
+                http_response_code(404); // Non trouvé
+                echo json_encode(['error' => 'Administrateur non trouvé.']);
+                return;
             }
     
             // Vérifier le mot de passe
             if (!password_verify($mdp_admin, $administrateur['mdp_admin'])) {
-                // Si le mot de passe est incorrect, afficher une erreur
-                $error = 'Mot de passe incorrect.';
-                return $this->display('administrateurs/login.html.twig', compact('error'));
+                http_response_code(401); // Non autorisé
+                echo json_encode(['error' => 'Mot de passe incorrect.']);
+                return;
             }
     
-            // Si tout est correct, démarrer une session pour l'utilisateur
-            $_SESSION['ad_mail_admin'] = $administrateur['ad_mail_admin'];
-            $_SESSION['id_administrateur'] = $administrateur['id_administrateur'];
+            // Récupérer la clé secrète JWT
+            $jwtSecret = $_ENV['JWT_SECRET'];
+            if ($jwtSecret === false) {
+                http_response_code(500);
+                echo json_encode(['error' => 'Clé secrète JWT manquante.']);
+                return;
+            }
     
-            // Rediriger vers la page d'accueil ou une autre page
-            HTTP::redirect('/administrateurs');
-        } 
+            // Générer le token JWT
+            $payload = [
+                'id_administrateur' => $administrateur['id_administrateur'],
+                'ad_mail_admin' => $administrateur['ad_mail_admin'],
+                'iat' => time(),
+                'exp' => time() + 3600, // Expire dans une heure
+            ];
+    
+            try {
+                $jwt = JWT::encode($payload, $jwtSecret, 'HS256');
+    
+                // Log du token généré pour le débogage
+                error_log("Token JWT généré : " . $jwt);
+    
+                http_response_code(200);
+                echo json_encode(['token' => $jwt]);
+            } catch (Exception $e) {
+                http_response_code(500);
+                echo json_encode(['error' => 'Erreur lors de la génération du token.']);
+            }
+        } else {
+            http_response_code(405);
+            echo json_encode(['error' => 'Méthode non autorisée.']);
+        }
     }
+    
 
     public function logout()
     {

@@ -24,6 +24,7 @@ return [
        
     /// POST ///
     ['POST', '/api/v1/administrateur', 'administrateur@create'],
+    ['POST', '/api/v1/administrateur/login', 'administrateur@login'],
 
     /// PATCH ///
     
@@ -50,7 +51,7 @@ return [
     ['GET', '/api/v1/decks', 'deck@getDecks'], 
    
     /// POST ///
-    ['POST', '/api/v1/decks', 'deck@create'],
+    ['POST', '/api/v1/deck', 'deck@create'],
 
     /// PATCH ///
     

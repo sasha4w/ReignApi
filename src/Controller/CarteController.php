@@ -8,6 +8,9 @@ use App\Helper\HTTP;
 use App\Helper\Security;
 use App\Model\Carte;
 use DateTime;
+use Firebase\JWT\JWT;
+use Firebase\JWT\Key;
+use Dotenv\Dotenv;
 
 class CarteController extends Controller
 {
