@@ -1,0 +1,36 @@
+[2024-11-22 2:29:20]	[ALERT]	404 - erreur dans le processus de traitement du routage
+    routeInfo: array(
+        0 => 1,
+        1 => 'deck@create',
+        2 => array(),
+    )
+    exception-line: 150
+    exception-file: 'C:\xampp\htdocs\ReignApi\vendor\firebase\php-jwt\src\JWT.php'
+    exception-code: 'Signature verification failed'
+[2024-11-22 2:40:11]	[ALERT]	404 - erreur dans le processus de traitement du routage
+    routeInfo: array(
+        0 => 1,
+        1 => 'carte@create',
+        2 => array(),
+    )
+    exception-line: 230
+    exception-file: 'C:\xampp\htdocs\ReignApi\src\Model\Model.php'
+    exception-code: 'SQLSTATE[23000]: Integrity constraint violation: 1452 Cannot add or update a child row: a foreign key constraint fails (`db.reignswebapp`.`carte`, CONSTRAINT `fk_carte_id_deck` FOREIGN KEY (`id_deck`) REFERENCES `deck` (`id_deck`) ON DELETE CASCADE ON UPDATE CASCADE)'
+[2024-11-22 2:45:41]	[ALERT]	404 - erreur dans le processus de traitement du routage
+    routeInfo: array(
+        0 => 1,
+        1 => 'carte@create',
+        2 => array(),
+    )
+    exception-line: 230
+    exception-file: 'C:\xampp\htdocs\ReignApi\src\Model\Model.php'
+    exception-code: 'SQLSTATE[23000]: Integrity constraint violation: 1452 Cannot add or update a child row: a foreign key constraint fails (`db.reignswebapp`.`carte`, CONSTRAINT `fk_carte_id_deck` FOREIGN KEY (`id_deck`) REFERENCES `deck` (`id_deck`) ON DELETE CASCADE ON UPDATE CASCADE)'
+[2024-11-22 2:47:07]	[ALERT]	404 - erreur dans le processus de traitement du routage
+    routeInfo: array(
+        0 => 1,
+        1 => 'carte@create',
+        2 => array(),
+    )
+    exception-line: 230
+    exception-file: 'C:\xampp\htdocs\ReignApi\src\Model\Model.php'
+    exception-code: 'SQLSTATE[23000]: Integrity constraint violation: 1452 Cannot add or update a child row: a foreign key constraint fails (`db.reignswebapp`.`carte`, CONSTRAINT `fk_carte_id_deck` FOREIGN KEY (`id_deck`) REFERENCES `deck` (`id_deck`) ON DELETE CASCADE ON UPDATE CASCADE)'

@@ -205,43 +205,93 @@ class CarteController extends Controller
      * @route [post] /cartes/ajouter
      *
      */
-    public function create($deckId)
+    public function create()
     {
-        $deckId = (int) $deckId;
-        $isLoggedInAsAdmin = isset($_SESSION['ad_mail_admin']);
-        $isLoggedInAsCreateur = isset($_SESSION['ad_mail_createur']); 
-        $carteAleatoire = Carte::getInstance()->getOrAssignRandomCard($deckId);    
-        $ordre_soumission = $isLoggedInAsCreateur ? Carte::getInstance()->countByDeckId($deckId) + 1 : 0;
+        // Définir les en-têtes pour une réponse JSON
+        header("Access-Control-Allow-Origin: *");
+        header("Access-Control-Allow-Headers: Content-Type, Authorization");
+        header("Content-Type: application/json");
     
-        // Vérifie si la méthode HTTP est GET pour afficher le formulaire
-        if ($this->isGetMethod()) {
-            $this->display('cartes/create.html.twig', compact('deckId', 'isLoggedInAsAdmin', 'isLoggedInAsCreateur', 'ordre_soumission', 'carteAleatoire'));
-        } else {
-            // Récupérer et nettoyer les données du formulaire
-            $texte_carte = trim($_POST['texte_carte']);
-            $valeurs_choix1_population = (int) trim($_POST['valeurs_choix1_population']);
-            $valeurs_choix1_finances = (int) trim($_POST['valeurs_choix1_finances']);
-            $valeurs_choix2_population = (int) trim($_POST['valeurs_choix2_population']);
-            $valeurs_choix2_finances = (int) trim($_POST['valeurs_choix2_finances']);
-            $ordre_soumission = trim($_POST['ordre_soumission']);
-            
-            // Initialiser un tableau d'erreurs
-            $errors = [];
+        $responseLogs = [];
     
-            // Valider les champs obligatoires
-            if (empty($texte_carte) || empty($valeurs_choix1_population) || empty($valeurs_choix1_finances) || empty($valeurs_choix2_population) || empty($valeurs_choix2_finances) || empty($ordre_soumission)) {
-                $errors[] = 'Tous les champs obligatoires doivent être remplis.';
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $responseLogs[] = "=== Début de la requête pour création de carte ===";
+    
+            // Charger les variables d'environnement
+            $dotenv = Dotenv::createImmutable(__DIR__ . '/../../');
+            $dotenv->load();
+    
+            // Récupérer le token depuis l'en-tête Authorization
+            $headers = getallheaders();
+            $authHeader = $headers['Authorization'] ?? '';
+            $responseLogs[] = "Authorization Header: " . $authHeader;
+    
+            if (!preg_match('/Bearer\s(\S+)/', $authHeader, $matches)) {
+                $responseLogs[] = "Token manquant ou invalide.";
+                http_response_code(401); // Unauthorized
+                echo json_encode(['error' => 'Token manquant ou invalide.', 'logs' => $responseLogs]);
+                return;
             }
     
-            // Vérification de la longueur du texte de la carte
+            $jwt = $matches[1]; // Le token JWT
+            $jwtSecret = $_ENV['JWT_SECRET'];
+    
+            try {
+                // Décoder le token
+                $decoded = JWT::decode($jwt, new Key($jwtSecret, 'HS256'));
+                $responseLogs[] = "JWT décodé : " . json_encode($decoded);
+            } catch (Exception $e) {
+                $responseLogs[] = "Erreur lors du décodage du token : " . $e->getMessage();
+                http_response_code(401); // Unauthorized
+                echo json_encode(['error' => 'Token invalide : ' . $e->getMessage(), 'logs' => $responseLogs]);
+                return;
+            }
+    
+            // Extraire les informations nécessaires du token
+            $id_createur_from_token = $decoded->id_createur ?? null;
+            $id_administrateur_from_token = $decoded->id_administrateur ?? null;
+    
+            // Vérifier qu'un administrateur ou créateur est authentifié
+            if (!$id_createur_from_token && !$id_administrateur_from_token) {
+                $responseLogs[] = "Aucun administrateur ou créateur identifié dans le token.";
+                http_response_code(403); // Forbidden
+                echo json_encode(['error' => 'Vous devez être connecté en tant qu’administrateur ou créateur.', 'logs' => $responseLogs]);
+                return;
+            }
+    
+            // Récupérer les données JSON envoyées dans le corps de la requête
+            $data = json_decode(file_get_contents('php://input'), true);
+            $responseLogs[] = "Données reçues : " . json_encode($data);
+    
+            // Validation des données obligatoires
+            if (!isset($data['texte_carte']) || 
+                !isset($data['valeurs_choix1_population']) || 
+                !isset($data['valeurs_choix1_finances']) || 
+                !isset($data['valeurs_choix2_population']) || 
+                !isset($data['valeurs_choix2_finances']) || 
+                !isset($data['ordre_soumission']) || 
+                !isset($data['deck_id'])) {
+                $responseLogs[] = "Champs obligatoires manquants.";
+                http_response_code(400); // Bad Request
+                echo json_encode(['error' => 'Tous les champs obligatoires doivent être remplis.', 'logs' => $responseLogs]);
+                return;
+            }
+    
+            // Extraction des données
+            $texte_carte = trim($data['texte_carte']);
+            $valeurs_choix1_population = (int) $data['valeurs_choix1_population'];
+            $valeurs_choix1_finances = (int) $data['valeurs_choix1_finances'];
+            $valeurs_choix2_population = (int) $data['valeurs_choix2_population'];
+            $valeurs_choix2_finances = (int) $data['valeurs_choix2_finances'];
+            $ordre_soumission = (int) $data['ordre_soumission'];
+            $deck_id = (int) $data['deck_id'];
+    
+            // Vérifications supplémentaires
             if (strlen($texte_carte) < 50 || strlen($texte_carte) > 280) {
-                $errors[] = 'Le texte de la carte doit contenir entre 50 et 280 caractères.';
-            }
-    
-            // S'il y a des erreurs, afficher le formulaire avec les messages d'erreur
-            if (!empty($errors)) {
-                $error = implode(' ', $errors); // Joindre les erreurs pour les afficher
-                return $this->display('cartes/create.html.twig', compact('deckId', 'error', 'isLoggedInAsAdmin', 'isLoggedInAsCreateur', 'ordre_soumission', 'carteAleatoire'));
+                $responseLogs[] = "Le texte de la carte doit contenir entre 50 et 280 caractères.";
+                http_response_code(400); // Bad Request
+                echo json_encode(['error' => 'Le texte de la carte doit contenir entre 50 et 280 caractères.', 'logs' => $responseLogs]);
+                return;
             }
     
             // Encoder les choix en JSON
@@ -252,33 +302,55 @@ class CarteController extends Controller
             $valeurs_choix2 = json_encode([
                 'population' => $valeurs_choix2_population,
                 'finances' => $valeurs_choix2_finances
-            ]);        
+            ]);
     
             // Préparer les données pour l'insertion
-            $data = [
+            $cardData = [
                 'texte_carte' => $texte_carte,
                 'valeurs_choix1' => $valeurs_choix1,
                 'valeurs_choix2' => $valeurs_choix2,
-                'id_deck' => $deckId, // clé étrangère associée au deck
+                'id_deck' => $deck_id,
                 'ordre_soumission' => $ordre_soumission,
             ];
     
-            // Ajouter les ID créateur ou administrateur si l'utilisateur est connecté
-            if ($isLoggedInAsCreateur) {
-                $data['id_createur'] = trim($_SESSION['id_createur']);
+            // Associer l'utilisateur selon le token
+            if ($id_createur_from_token) {
+                $cardData['id_createur'] = $id_createur_from_token;
             }
-    
-            if ($isLoggedInAsAdmin) {
-                $data['id_administrateur'] = trim($_SESSION['id_administrateur']);
+            if ($id_administrateur_from_token) {
+                $cardData['id_administrateur'] = $id_administrateur_from_token;
             }
     
             // Insérer la carte dans la base de données
-            Carte::getInstance()->create($data);
+            try {
+                $carteId = Carte::getInstance()->create($cardData);
+                $responseLogs[] = "Carte créée avec succès. ID : $carteId";
     
-            // Rediriger vers la liste des cartes après l'insertion
-            HTTP::redirect('/cartes');
+                http_response_code(201); // Created
+                echo json_encode([
+                    'status' => 'success',
+                    'card' => [
+                        'id_carte' => $carteId,
+                        'texte_carte' => $texte_carte,
+                        'id_deck' => $deck_id,
+                        'ordre_soumission' => $ordre_soumission,
+                    ],
+                    'logs' => $responseLogs
+                ]);
+            } catch (Exception $e) {
+                $responseLogs[] = "Erreur lors de la création de la carte : " . $e->getMessage();
+                http_response_code(500); // Internal Server Error
+                echo json_encode(['error' => 'Erreur lors de la création de la carte.', 'logs' => $responseLogs]);
+            }
+        } else {
+            $responseLogs[] = "Méthode non autorisée.";
+            http_response_code(405); // Method Not Allowed
+            echo json_encode(['error' => 'Méthode non autorisée.', 'logs' => $responseLogs]);
         }
+    
+        $responseLogs[] = "=== Fin de la requête ===";
     }
+    
     
     
     public function edit(int|string $id)

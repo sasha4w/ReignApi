@@ -62,9 +62,8 @@ return [
     /// GET ///
     ['GET', '/api/v1/cartes/administrateur', 'carte@getCartesForAdmin'], 
     ['GET', '/api/v1/cartes/createur/{id}', 'carte@getCartesForCreateur'],
-    ['GET', '/api/v1/cartes/{id:\d+}', 'carte@index'], 
-    ['GET', '/api/v1/createur/cartes', 'carte@index'],  
-    ['GET', '/api/v1/administrateur/cartes', 'carte@index'],  
+    ['POST', '/api/v1/carte', 'carte@create'],
+
     
     /// POST ///
 
