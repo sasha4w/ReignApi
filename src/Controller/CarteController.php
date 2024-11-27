@@ -352,53 +352,112 @@ class CarteController extends Controller
     }
     
     
-    
-    public function edit(int|string $id)
+    public function update(int|string $id)
     {
-        // Forcer l'ID à être un entier si nécessaire
+        // Set response headers for JSON
+        header("Access-Control-Allow-Origin: *");
+        header("Access-Control-Allow-Headers: Content-Type, Authorization");
+        header("Content-Type: application/json");
+        
+        $responseLogs = [];
+        
+        // Force the ID to be an integer
         $id = (int)$id;
+        
+        // Get the existing card data using the ID
+        $carte = Carte::getInstance()->findOneBy(['id_carte' => $id]);
+        if (!$carte) {
+            $responseLogs[] = "Carte introuvable avec l'ID : $id.";
+            http_response_code(404); // Not Found
+            echo json_encode(['error' => 'Carte introuvable.', 'logs' => $responseLogs]);
+            return;
+        }
     
-        // Récupérer l'carte existant
-        $carte = Carte::getInstance()->find($id);
+        // Check if it's a PATCH request
+        if ($_SERVER['REQUEST_METHOD'] === 'PATCH') {
+            $responseLogs[] = "=== Début de la requête pour mise à jour de la carte ===";
     
-        if ($this->isGetMethod()) {
-            // Passer l'carte à la vue pour préremplir le formulaire
-            $this->display('cartes/edit.html.twig', compact('carte'));
-        } else {
-            // Traiter la requête POST pour la mise à jour
+            // Retrieve JSON data from the request body
+            $data = json_decode(file_get_contents('php://input'), true);
+            $responseLogs[] = "Données reçues : " . json_encode($data);
     
-            // 1. Préparer le nom du fichier s'il y a une nouvelle image
-            $filename = $carte['illustration']; // garder l'image existante par défaut
-    
-            // Vérifier si une nouvelle image a été envoyée
-            if (!empty($_FILES['illustration']) && $_FILES['illustration']['type'] == 'image/webp') {
-                // récupérer le nom et emplacement du fichier dans sa zone temporaire
-                $source = $_FILES['illustration']['tmp_name'];
-                // récupérer le nom originel du fichier
-                $filename = $_FILES['illustration']['name'];
-                // ajout d'un suffixe unique
-                $filename_name = pathinfo($filename, PATHINFO_FILENAME);
-                $filename_extension = pathinfo($filename, PATHINFO_EXTENSION);
-                $suffix = uniqid();
-                $filename = $filename_name . '_' . $suffix . '.' . $filename_extension;
-                // construire le nom et l'emplacement du fichier de destination
-                $destination = APP_ASSETS_DIRECTORY . 'image' . DS . 'carte' . DS . $filename;
-                // déplacer le fichier dans son dossier cible
-                move_uploaded_file($source, $destination);
+            // Validate required fields
+            if (!isset($data['texte_carte']) || 
+                !isset($data['valeurs_choix1_population']) || 
+                !isset($data['valeurs_choix1_finances']) || 
+                !isset($data['valeurs_choix2_population']) || 
+                !isset($data['valeurs_choix2_finances'])) {
+                $responseLogs[] = "Champs obligatoires manquants.";
+                http_response_code(400); // Bad Request
+                echo json_encode(['error' => 'Tous les champs obligatoires doivent être remplis.', 'logs' => $responseLogs]);
+                return;
             }
     
-            // 2. Exécuter la requête de mise à jour dans la base de données
-            Carte::getInstance()->update($id, [
-                'email' => trim($_POST['email']),
-                'password' => trim($_POST['password']),
-                'display_name' => trim($_POST['display_name']),
-                'illustration' => $filename, // utilise soit l'image existante, soit la nouvelle
+            // Extract the data for updating
+            $texte_carte = trim($data['texte_carte']);
+            $valeurs_choix1_population = $data['valeurs_choix1_population']; // Keep as string for JSON
+            $valeurs_choix1_finances = $data['valeurs_choix1_finances'];   // Keep as string for JSON
+            $valeurs_choix2_population = $data['valeurs_choix2_population']; // Keep as string for JSON
+            $valeurs_choix2_finances = $data['valeurs_choix2_finances'];   // Keep as string for JSON
+    
+            // Validate the text length (between 50 and 280 characters)
+            if (strlen($texte_carte) < 50 || strlen($texte_carte) > 280) {
+                $responseLogs[] = "Le texte de la carte doit contenir entre 50 et 280 caractères.";
+                http_response_code(400); // Bad Request
+                echo json_encode(['error' => 'Le texte de la carte doit contenir entre 50 et 280 caractères.', 'logs' => $responseLogs]);
+                return;
+            }
+    
+            // Encode the choices as JSON
+            $valeurs_choix1 = json_encode([
+                'population' => $valeurs_choix1_population,
+                'finances' => $valeurs_choix1_finances
+            ]);
+            $valeurs_choix2 = json_encode([
+                'population' => $valeurs_choix2_population,
+                'finances' => $valeurs_choix2_finances
             ]);
     
-            // 3. Rediriger vers la page d'accueil après la mise à jour
-            HTTP::redirect('/');
+            // Prepare the data for updating
+            $updateData = [
+                'texte_carte' => $texte_carte,
+                'valeurs_choix1' => $valeurs_choix1,
+                'valeurs_choix2' => $valeurs_choix2
+            ];
+    
+            // Update the card in the database
+            try {
+                Carte::getInstance()->update($id, $updateData);
+                $responseLogs[] = "Carte mise à jour avec succès. ID : $id";
+    
+                // Send the success response
+                http_response_code(200); // OK
+                echo json_encode([
+                    'status' => 'success',
+                    'card' => [
+                        'id_carte' => $id,
+                        'texte_carte' => $texte_carte,
+                        'valeurs_choix1' => json_decode($valeurs_choix1, true),
+                        'valeurs_choix2' => json_decode($valeurs_choix2, true)
+                    ],
+                    'logs' => $responseLogs
+                ]);
+            } catch (Exception $e) {
+                $responseLogs[] = "Erreur lors de la mise à jour de la carte : " . $e->getMessage();
+                http_response_code(500); // Internal Server Error
+                echo json_encode(['error' => 'Erreur lors de la mise à jour de la carte.', 'logs' => $responseLogs]);
+            }
+        } else {
+            // If the request method is not PATCH, return an error
+            $responseLogs[] = "Méthode non autorisée.";
+            http_response_code(405); // Method Not Allowed
+            echo json_encode(['error' => 'Méthode non autorisée.', 'logs' => $responseLogs]);
         }
+    
+        $responseLogs[] = "=== Fin de la requête ===";
     }
+    
+    
     
     /**
      * Effacer un carte.

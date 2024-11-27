@@ -1,0 +1,12 @@
+[2024-11-27 11:25:31]	[ALERT]	404 - commande non existante :: /api/v1/cartes/5
+[2024-11-27 11:27:11]	[ALERT]	404 - erreur dans le processus de traitement du routage
+    routeInfo: array(
+        0 => 1,
+        1 => 'carte@update',
+        2 => array(
+            'id_carte' => '5',
+        ),
+    )
+    exception-line: 239
+    exception-file: 'C:\xampp\htdocs\ReignApi\src\Model\Model.php'
+    exception-code: 'SQLSTATE[42S22]: Column not found: 1054 Unknown column 'id' in 'where clause''

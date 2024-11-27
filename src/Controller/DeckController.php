@@ -186,72 +186,132 @@ class DeckController extends Controller
     }
     
     
-    public function edit(int|string $id)
+    public function update(int|string $id)
     {
-        // Forcer l'ID à être un entier si nécessaire
+        header("Access-Control-Allow-Origin: *");
+        header("Access-Control-Allow-Headers: Content-Type, Authorization");
+        header("Content-Type: application/json");
+    
+        $responseLogs = [];
+    
+        // Forcer l'ID à être un entier
         $id = (int)$id;
     
-        // Récupérer l'deck existant
-        $deck = Deck::getInstance()->find($id);
+        // Récupérer le deck existant avec findOneBy
+        $deck = Deck::getInstance()->findOneBy(['id_deck' => $id]);
+        if (!$deck) {
+            $responseLogs[] = "Deck introuvable avec l'ID : $id.";
+            http_response_code(404); // Not Found
+            echo json_encode(['error' => 'Deck introuvable.', 'logs' => $responseLogs]);
+            return;
+        }
     
-        if ($this->isGetMethod()) {
-            // Passer l'deck à la vue pour préremplir le formulaire
-            $this->display('decks/edit.html.twig', compact('deck'));
-        } else {
-            // Traiter la requête POST pour la mise à jour
+        if ($_SERVER['REQUEST_METHOD'] === 'PATCH') {
+            $responseLogs[] = "=== Début de la requête pour modification du deck ===";
     
-            // 1. Préparer le nom du fichier s'il y a une nouvelle image
-            $filename = $deck['illustration']; // garder l'image existante par défaut
+            // Récupérer les données JSON envoyées dans le corps de la requête
+            $data = json_decode(file_get_contents('php://input'), true);
+            $responseLogs[] = "Données reçues : " . json_encode($data);
     
-            // Vérifier si une nouvelle image a été envoyée
-            if (!empty($_FILES['illustration']) && $_FILES['illustration']['type'] == 'image/webp') {
-                // récupérer le nom et emplacement du fichier dans sa zone temporaire
-                $source = $_FILES['illustration']['tmp_name'];
-                // récupérer le nom originel du fichier
-                $filename = $_FILES['illustration']['name'];
-                // ajout d'un suffixe unique
-                $filename_name = pathinfo($filename, PATHINFO_FILENAME);
-                $filename_extension = pathinfo($filename, PATHINFO_EXTENSION);
-                $suffix = uniqid();
-                $filename = $filename_name . '_' . $suffix . '.' . $filename_extension;
-                // construire le nom et l'emplacement du fichier de destination
-                $destination = APP_ASSETS_DIRECTORY . 'image' . DS . 'deck' . DS . $filename;
-                // déplacer le fichier dans son dossier cible
-                move_uploaded_file($source, $destination);
+            // Vérifier les champs obligatoires
+            if (!isset($data['titre_deck']) || !isset($data['date_fin_deck']) || !isset($data['nb_cartes'])) {
+                $responseLogs[] = "Champs obligatoires manquants.";
+                http_response_code(400); // Bad Request
+                echo json_encode(['error' => 'Tous les champs obligatoires doivent être remplis.', 'logs' => $responseLogs]);
+                return;
             }
     
-            // 2. Exécuter la requête de mise à jour dans la base de données
-            Deck::getInstance()->update($id, [
-                'email' => trim($_POST['email']),
-                'password' => trim($_POST['password']),
-                'display_name' => trim($_POST['display_name']),
-                'illustration' => $filename, // utilise soit l'image existante, soit la nouvelle
+            // Extraire les données
+            $titre_deck = $data['titre_deck'];
+            $date_fin_deck = $data['date_fin_deck'];
+            $nb_cartes = $data['nb_cartes'];
+    
+            // Valider la date
+            if (!DateTime::createFromFormat('Y-m-d', $date_fin_deck)) {
+                $responseLogs[] = "Format de la date invalide.";
+                http_response_code(400); // Bad Request
+                echo json_encode(['error' => 'Format de la date invalide. Utilisez le format YYYY-MM-DD.', 'logs' => $responseLogs]);
+                return;
+            }
+    
+            // Valider le nombre de cartes
+            if (!is_numeric($nb_cartes) || intval($nb_cartes) <= 0) {
+                $responseLogs[] = "Le nombre de cartes doit être un entier positif.";
+                http_response_code(400); // Bad Request
+                echo json_encode(['error' => 'Le nombre de cartes doit être un entier positif.', 'logs' => $responseLogs]);
+                return;
+            }
+    
+            // Mettre à jour le deck
+            $updated = Deck::getInstance()->update($id, [
+                'titre_deck' => $titre_deck,
+                'date_fin_deck' => $date_fin_deck,
+                'nb_cartes' => intval($nb_cartes),
             ]);
     
-            // 3. Rediriger vers la page d'accueil après la mise à jour
-            HTTP::redirect('/');
+            if ($updated) {
+                $responseLogs[] = "Deck mis à jour avec succès.";
+                http_response_code(200); // OK
+                echo json_encode([
+                    'status' => 'success',
+                    'deck' => [
+                        'id_deck' => $id,
+                        'titre_deck' => $titre_deck,
+                        'date_fin_deck' => $date_fin_deck,
+                        'nb_cartes' => $nb_cartes,
+                    ],
+                    'logs' => $responseLogs,
+                ]);
+            } else {
+                $responseLogs[] = "Erreur lors de la mise à jour du deck.";
+                http_response_code(500); // Internal Server Error
+                echo json_encode(['error' => 'Erreur lors de la mise à jour du deck.', 'logs' => $responseLogs]);
+            }
+        } else {
+            $responseLogs[] = "Méthode non autorisée.";
+            http_response_code(405); // Method Not Allowed
+            echo json_encode(['error' => 'Méthode non autorisée.', 'logs' => $responseLogs]);
         }
     }
-    public function delete(
-        int|string $id
-    ) {
-            // 1. Forcer l'ID à être un entier si nécessaire
-    $id = (int) $id;
-
-    // 2. Récupérer l'deck existant
-    $deck = Deck::getInstance()->find($id);
-
-    // 3. Vérifier si l'deck existe
-    if (!$deck) {
-        // Si l'deck n'existe pas, rediriger ou afficher un message d'erreur
-        HTTP::redirect('/decks');
-        return;
+    
+    
+    
+    
+    public function delete(int|string $id)
+    {
+        header("Access-Control-Allow-Origin: *");
+        header("Access-Control-Allow-Headers: Content-Type, Authorization");
+        header("Content-Type: application/json");
+    
+        $responseLogs = [];
+    
+        // Forcer l'ID à être un entier
+        $id = (int)$id;
+    
+        // Récupérer le deck existant
+        $deck = Deck::getInstance()->find($id);
+        if (!$deck) {
+            $responseLogs[] = "Deck introuvable avec l'ID : $id.";
+            http_response_code(404); // Not Found
+            echo json_encode(['error' => 'Deck introuvable.', 'logs' => $responseLogs]);
+            return;
+        }
+    
+        // Supprimer le deck
+        $deleted = Deck::getInstance()->delete($id);
+        if ($deleted) {
+            $responseLogs[] = "Deck supprimé avec succès. ID : $id.";
+            http_response_code(200); // OK
+            echo json_encode([
+                'status' => 'success',
+                'message' => "Deck supprimé avec succès.",
+                'logs' => $responseLogs,
+            ]);
+        } else {
+            $responseLogs[] = "Erreur lors de la suppression du deck.";
+            http_response_code(500); // Internal Server Error
+            echo json_encode(['error' => 'Erreur lors de la suppression du deck.', 'logs' => $responseLogs]);
+        }
     }
-
-    // 5. Supprimer l'deck de la base de données
-    Deck::getInstance()->delete($id);
-
-    // 6. Rediriger vers la page d'accueil après la suppression
-    HTTP::redirect('/decks');
-    }
+    
 }

@@ -183,20 +183,29 @@ class Model
         int $id,
         array $datas
     ): bool {
+        // Générer le nom de la colonne ID dynamiquement
+        $idColumn = 'id_' . $this->tableName;
+    
+        // Construire la requête SQL
         $sql = 'UPDATE `' . $this->tableName . '` SET ';
         foreach (array_keys($datas) as $k) {
-            $sql .= " {$k} = :{$k} ,";
+            $sql .= " {$k} = :{$k},";
         }
-        $sql = substr($sql, 0, strlen($sql) - 1);
-        $sql .= ' WHERE id =:id';
-        foreach (array_keys($datas) as $k) {
-            $attributes[':' . $k] = $datas[$k];
+        $sql = rtrim($sql, ','); // Supprimer la dernière virgule
+        $sql .= ' WHERE ' . $idColumn . ' = :id'; // Utiliser la colonne ID générée
+    
+        // Préparer les données à associer
+        $attributes = [];
+        foreach ($datas as $key => $value) {
+            $attributes[':' . $key] = $value;
         }
         $attributes[':id'] = $id;
+    
+        // Exécuter la requête
         $sth = $this->query($sql, $attributes);
-
         return $sth->rowCount() > 0;
     }
+    
 
     /**
      * Efface l'identifiant.

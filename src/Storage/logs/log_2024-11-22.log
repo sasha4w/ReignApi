@@ -34,3 +34,4 @@
     exception-line: 230
     exception-file: 'C:\xampp\htdocs\ReignApi\src\Model\Model.php'
     exception-code: 'SQLSTATE[23000]: Integrity constraint violation: 1452 Cannot add or update a child row: a foreign key constraint fails (`db.reignswebapp`.`carte`, CONSTRAINT `fk_carte_id_deck` FOREIGN KEY (`id_deck`) REFERENCES `deck` (`id_deck`) ON DELETE CASCADE ON UPDATE CASCADE)'
+[2024-11-22 9:57:57]	[ALERT]	404 - commande non existante :: /api/v1/cartes

@@ -41,7 +41,8 @@ return [
 
 
     /// PATCH ///
-    
+    ['PATCH', '/api/v1/createurs/warn/{id_createur:\d+}', 'createur@warn'],
+
     /// DELETE ///
 
     ///// DECK /////
@@ -54,23 +55,28 @@ return [
     ['POST', '/api/v1/deck', 'deck@create'],
 
     /// PATCH ///
-    
+    ['PATCH', '/api/v1/decks/{id_deck:\d+}', 'deck@update'],
+
     /// DELETE ///
+    ['DELETE', '/api/v1/decks/{id_deck:\d+}', 'deck@delete'],
 
     ///// CARTE /////
 
     /// GET ///
     ['GET', '/api/v1/cartes/administrateur', 'carte@getCartesForAdmin'], 
     ['GET', '/api/v1/cartes/createur/{id}', 'carte@getCartesForCreateur'],
-    ['POST', '/api/v1/carte', 'carte@create'],
 
     
     /// POST ///
+    ['POST', '/api/v1/carte', 'carte@create'],
 
     /// PATCH ///
+    ['PATCH', '/api/v1/cartes/{id_carte:\d+}', 'carte@update'],
+
     
     /// DELETE ///
-    
+ 
+
     ///// CARTE ALEATOIRE /////
     
     /// GET ///

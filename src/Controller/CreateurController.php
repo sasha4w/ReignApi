@@ -249,6 +249,52 @@ class CreateurController extends Controller
             HTTP::redirect('/');
         }
     }
+
+/**
+     * Ajouter un avertissement à un créateur.
+ 
+ */
+public function warn(int|string $id_createur)
+{
+    header("Access-Control-Allow-Origin: *");
+    header("Access-Control-Allow-Headers: Content-Type");
+    header("Content-Type: application/json");
+    $id_createur = (int) $id_createur;
+
+    // 1. Vérifier que l'ID est valide et que le créateur existe
+    $createur = Createur::getInstance()->findOneBy(['id_createur' => $id_createur]);
+
+    if (!$createur) {
+        // Si l'ID du créateur est introuvable, renvoyer une erreur
+        http_response_code(404); // Not Found
+        echo json_encode(['error' => 'Créateur non trouvé.']);
+        return;
+    }
+
+    // 2. Incrémenter le champ 'warn' du créateur
+    try {
+        // Incrémenter la valeur du champ warn de +1
+        $newWarnCount = $createur['warn'] + 1;
+
+        // Mettre à jour la valeur du champ 'warn' dans la base de données
+        Createur::getInstance()->update($id_createur, ['warn' => $newWarnCount]);
+
+        // 3. Renvoyer la réponse JSON avec le nouveau compteur de 'warn'
+        http_response_code(200); // OK
+        echo json_encode([
+            'message' => 'Avertissement ajouté avec succès.',
+            'id_createur' => $id_createur,
+            'new_warn_count' => $newWarnCount
+        ]);
+    } catch (Exception $e) {
+        // Si une erreur se produit lors de la mise à jour, renvoyer une erreur 500
+        http_response_code(500); // Internal Server Error
+        echo json_encode(['error' => 'Erreur lors de l\'ajout de l\'avertissement.']);
+    }
+}
+
+
+
     
     /**
      * Effacer un createur.
@@ -262,7 +308,7 @@ class CreateurController extends Controller
     $id = (int) $id;
 
     // 2. Récupérer l'createur existant
-    $createur = Createur::getInstance()->find($id);
+    $createur = Createur::getInstance()->findOneBy(['id_createur' => $id]);
 
     // 3. Vérifier si l'createur existe
     if (!$createur) {
