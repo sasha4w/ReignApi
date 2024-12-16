@@ -348,7 +348,7 @@ class DeckController extends Controller
     $id_deck = (int) $id_deck;
 
     // 1. Vérifier que l'ID est valide et que le créateur existe
-    $id_deck = Deck::getInstance()->findOneBy(['id_deck' => $id_deck]);
+    $deck = Deck::getInstance()->findOneBy(['id_deck' => $id_deck]);
 
     if (!$id_deck) {
         // Si l'ID du deck est introuvable, renvoyer une erreur
