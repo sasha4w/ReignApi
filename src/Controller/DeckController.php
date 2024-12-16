@@ -47,8 +47,31 @@ class DeckController extends Controller
             ]);
         }
     }
+    public function getPlayableDecks()
+    {
+        // Récupérer les decks jouables
+        $decks = Deck::getInstance()->findPlayableDecks();
     
-
+        // Vérifier si des decks ont été récupérés
+        if ($decks) {
+            // Définir l'en-tête Content-Type pour une réponse JSON
+            header("Content-Type: application/json");
+    
+            // Retourner les decks sous forme de JSON
+            echo json_encode([
+                'status' => 'success',
+                'decks' => $decks
+            ]);
+        } else {
+            // Si aucune donnée n'est trouvée, retourner un message d'erreur
+            header("Content-Type: application/json");
+            echo json_encode([
+                'status' => 'error',
+                'message' => 'Aucun deck jouable trouvé'
+            ]);
+        }
+    }
+    
     /**
      * Afficher le formulaire de saisie d'un nouvel deck ou traiter les
      * données soumises présentent dans $_POST.
@@ -279,6 +302,7 @@ class DeckController extends Controller
     
     public function delete(int|string $id)
     {
+        // Définir les en-têtes pour une réponse JSON
         header("Access-Control-Allow-Origin: *");
         header("Access-Control-Allow-Headers: Content-Type, Authorization");
         header("Content-Type: application/json");
@@ -286,32 +310,73 @@ class DeckController extends Controller
         $responseLogs = [];
     
         // Forcer l'ID à être un entier
-        $id = (int)$id;
+        $id = (int) $id;
     
-        // Récupérer le deck existant
-        $deck = Deck::getInstance()->find($id);
+        // Vérifier si la carte existe
+        $deck = Deck::getInstance()->findOneBy(['id_deck' => $id]);
         if (!$deck) {
-            $responseLogs[] = "Deck introuvable avec l'ID : $id.";
+            $responseLogs[] = "Carte introuvable avec l'ID : $id.";
             http_response_code(404); // Not Found
             echo json_encode(['error' => 'Deck introuvable.', 'logs' => $responseLogs]);
             return;
         }
     
-        // Supprimer le deck
-        $deleted = Deck::getInstance()->delete($id);
-        if ($deleted) {
-            $responseLogs[] = "Deck supprimé avec succès. ID : $id.";
+        // Supprimer la carte
+        try {
+            Deck::getInstance()->delete(['id_deck' => $id]);
+            $responseLogs[] = "Carte supprimée avec succès. ID : $id";
+    
+            // Envoyer une réponse JSON de succès
             http_response_code(200); // OK
             echo json_encode([
                 'status' => 'success',
-                'message' => "Deck supprimé avec succès.",
-                'logs' => $responseLogs,
+                'message' => "Carte avec l'ID $id supprimée avec succès.",
+                'logs' => $responseLogs
             ]);
-        } else {
-            $responseLogs[] = "Erreur lors de la suppression du deck.";
+        } catch (Exception $e) {
+            // Gérer les erreurs lors de la suppression
+            $responseLogs[] = "Erreur lors de la suppression de la carte : " . $e->getMessage();
             http_response_code(500); // Internal Server Error
-            echo json_encode(['error' => 'Erreur lors de la suppression du deck.', 'logs' => $responseLogs]);
+            echo json_encode(['error' => 'Erreur lors de la suppression de la carte.', 'logs' => $responseLogs]);
         }
     }
+    public function like(int|string $id_deck)
+{
+    header("Access-Control-Allow-Origin: *");
+    header("Access-Control-Allow-Headers: Content-Type");
+    header("Content-Type: application/json");
+    $id_deck = (int) $id_deck;
+
+    // 1. Vérifier que l'ID est valide et que le créateur existe
+    $id_deck = Deck::getInstance()->findOneBy(['id_deck' => $id_deck]);
+
+    if (!$id_deck) {
+        // Si l'ID du deck est introuvable, renvoyer une erreur
+        http_response_code(404); // Not Found
+        echo json_encode(['error' => 'Deck non trouvé.']);
+        return;
+    }
+
+    // 2. Incrémenter le champ 'like' du créateur
+    try {
+        // Incrémenter la valeur du champ like de +1
+        $newLikeCount = $deck['like'] + 1;
+
+        // Mettre à jour la valeur du champ 'like' dans la base de données
+        Deck::getInstance()->update($id_deck, ['deck' => $newLikeCount]);
+
+        // 3. Renvoyer la réponse JSON avec le nouveau compteur de 'like'
+        http_response_code(200); // OK
+        echo json_encode([
+            'message' => 'Avertissement ajouté avec succès.',
+            'id_createur' => $id_createur,
+            'new_like_count' => $newLikeCount
+        ]);
+    } catch (Exception $e) {
+        // Si une erreur se produit lors de la mise à jour, renvoyer une erreur 500
+        http_response_code(500); // Internal Server Error
+        echo json_encode(['error' => 'Erreur lors de l\'ajout d\'un like.']);
+    }
+}
     
 }

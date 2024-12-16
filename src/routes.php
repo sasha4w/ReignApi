@@ -39,13 +39,16 @@ return [
 
     /// GET ///
     
-    ['GET', '/api/v1/decks', 'deck@getDecks'], 
+    ['GET', '/api/v1/decks', 'deck@getDecks'],
+    ['GET', '/api/v1/decks/playable', 'deck@getPlayableDecks'], 
    
     /// POST ///
     ['POST', '/api/v1/deck', 'deck@create'],
 
     /// PATCH ///
     ['PATCH', '/api/v1/decks/{id_deck:\d+}', 'deck@update'],
+    ['PATCH', '/api/v1/decks/like/{id_deck:\d+}', 'deck@like'],
+
 
     /// DELETE ///
     ['DELETE', '/api/v1/decks/{id_deck:\d+}', 'deck@delete'],
@@ -65,6 +68,7 @@ return [
 
     
     /// DELETE ///
+    ['DELETE', '/api/v1/cartes/{id_carte:\d+}', 'carte@delete'],
  
 
     ///// CARTE ALEATOIRE /////

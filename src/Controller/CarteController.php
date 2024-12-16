@@ -264,9 +264,11 @@ class CarteController extends Controller
             $responseLogs[] = "Données reçues : " . json_encode($data);
     
             // Validation des données obligatoires
-            if (!isset($data['texte_carte']) || 
+            if (!isset($data['texte_carte']) ||
+                !isset($data['valeurs_choix1_texte']) ||
                 !isset($data['valeurs_choix1_population']) || 
-                !isset($data['valeurs_choix1_finances']) || 
+                !isset($data['valeurs_choix1_finances']) ||
+                !isset($data['valeurs_choix2_texte']) ||
                 !isset($data['valeurs_choix2_population']) || 
                 !isset($data['valeurs_choix2_finances']) || 
                 !isset($data['ordre_soumission']) || 
@@ -279,8 +281,10 @@ class CarteController extends Controller
     
             // Extraction des données
             $texte_carte = trim($data['texte_carte']);
+            $valeurs_choix1_texte = (int) $data['valeurs_choix1_texte'];
             $valeurs_choix1_population = (int) $data['valeurs_choix1_population'];
             $valeurs_choix1_finances = (int) $data['valeurs_choix1_finances'];
+            $valeurs_choix1_texte = (int) $data['valeurs_choix2_texte'];
             $valeurs_choix2_population = (int) $data['valeurs_choix2_population'];
             $valeurs_choix2_finances = (int) $data['valeurs_choix2_finances'];
             $ordre_soumission = (int) $data['ordre_soumission'];
@@ -296,10 +300,12 @@ class CarteController extends Controller
     
             // Encoder les choix en JSON
             $valeurs_choix1 = json_encode([
+                'texte' => $valeurs_choix1_texte,
                 'population' => $valeurs_choix1_population,
                 'finances' => $valeurs_choix1_finances
             ]);
             $valeurs_choix2 = json_encode([
+                'texte' => $valeurs_choix2_texte,
                 'population' => $valeurs_choix2_population,
                 'finances' => $valeurs_choix2_finances
             ]);
@@ -383,8 +389,10 @@ class CarteController extends Controller
     
             // Validate required fields
             if (!isset($data['texte_carte']) || 
+                !isset($data['valeurs_choix1_texte']) || 
                 !isset($data['valeurs_choix1_population']) || 
-                !isset($data['valeurs_choix1_finances']) || 
+                !isset($data['valeurs_choix1_finances']) ||
+                !isset($data['valeurs_choix2_texte']) ||  
                 !isset($data['valeurs_choix2_population']) || 
                 !isset($data['valeurs_choix2_finances'])) {
                 $responseLogs[] = "Champs obligatoires manquants.";
@@ -395,8 +403,10 @@ class CarteController extends Controller
     
             // Extract the data for updating
             $texte_carte = trim($data['texte_carte']);
+            $valeurs_choix1_population = $data['valeurs_choix1_texte']; 
             $valeurs_choix1_population = $data['valeurs_choix1_population']; // Keep as string for JSON
             $valeurs_choix1_finances = $data['valeurs_choix1_finances'];   // Keep as string for JSON
+            $valeurs_choix1_population = $data['valeurs_choix2_texte']; 
             $valeurs_choix2_population = $data['valeurs_choix2_population']; // Keep as string for JSON
             $valeurs_choix2_finances = $data['valeurs_choix2_finances'];   // Keep as string for JSON
     
@@ -410,10 +420,12 @@ class CarteController extends Controller
     
             // Encode the choices as JSON
             $valeurs_choix1 = json_encode([
+                'texte' => $valeurs_choix1_texte,                
                 'population' => $valeurs_choix1_population,
                 'finances' => $valeurs_choix1_finances
             ]);
             $valeurs_choix2 = json_encode([
+                'texte' => $valeurs_choix2_texte,                
                 'population' => $valeurs_choix2_population,
                 'finances' => $valeurs_choix2_finances
             ]);
@@ -464,34 +476,49 @@ class CarteController extends Controller
      * @route [get] /cartes/effacer/{id}
      *
      */
-    public function delete(
-        int|string $id
-    ) {
-            // 1. Forcer l'ID à être un entier si nécessaire
+/**
+ * Supprimer une carte.
+ * @route [delete] /cartes/effacer/{id}
+ */
+public function delete(int|string $id)
+{
+    // Définir les en-têtes pour une réponse JSON
+    header("Access-Control-Allow-Origin: *");
+    header("Access-Control-Allow-Headers: Content-Type, Authorization");
+    header("Content-Type: application/json");
+
+    $responseLogs = [];
+
+    // Forcer l'ID à être un entier
     $id = (int) $id;
 
-    // 2. Récupérer l'carte existant
-    $carte = Carte::getInstance()->find($id);
-
-    // 3. Vérifier si l'carte existe
+    // Vérifier si la carte existe
+    $carte = Carte::getInstance()->findOneBy(['id_carte' => $id]);
     if (!$carte) {
-        // Si l'carte n'existe pas, rediriger ou afficher un message d'erreur
-        HTTP::redirect('/');
+        $responseLogs[] = "Carte introuvable avec l'ID : $id.";
+        http_response_code(404); // Not Found
+        echo json_encode(['error' => 'Carte introuvable.', 'logs' => $responseLogs]);
         return;
     }
 
-    // 4. Supprimer l'image de l'carte s'il en a une
-    if (!empty($carte['illustration'])) {
-        $imagePath = APP_ASSETS_DIRECTORY . 'image' . DS . 'carte' . DS . $carte['illustration'];
-        if (file_exists($imagePath)) {
-            unlink($imagePath); // Supprimer l'image du serveur
-        }
-    }
+    // Supprimer la carte
+    try {
+        Carte::getInstance()->delete(['id_carte' => $id]);
+        $responseLogs[] = "Carte supprimée avec succès. ID : $id";
 
-    // 5. Supprimer l'carte de la base de données
-    Carte::getInstance()->delete($id);
-
-    // 6. Rediriger vers la page d'accueil après la suppression
-    HTTP::redirect('/');
+        // Envoyer une réponse JSON de succès
+        http_response_code(200); // OK
+        echo json_encode([
+            'status' => 'success',
+            'message' => "Carte avec l'ID $id supprimée avec succès.",
+            'logs' => $responseLogs
+        ]);
+    } catch (Exception $e) {
+        // Gérer les erreurs lors de la suppression
+        $responseLogs[] = "Erreur lors de la suppression de la carte : " . $e->getMessage();
+        http_response_code(500); // Internal Server Error
+        echo json_encode(['error' => 'Erreur lors de la suppression de la carte.', 'logs' => $responseLogs]);
     }
+}
+
 }
