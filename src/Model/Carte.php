@@ -50,7 +50,17 @@ class Carte extends Model
     public function findByDeckAndCreateur(int $id_deck, int $id_createur): ?array
     {
         return $this->findAllBy(['id_deck' => $id_deck, 'id_createur' => $id_createur]);
-    }        
+    }
+    
+        public function findByDeck(int $id_deck): array
+    {
+        return $this->findAllBy(['id_deck' => $id_deck]);
+    }
+    public function findByCreateur( int $id_createur): ?array
+    {
+        return $this->findAllBy(['id_createur' => $id_createur]);
+    }
+        
     public function countByDeckId(int $id_deck): int
     {
         $sql = "SELECT COUNT(*) AS total FROM {$this->tableName} WHERE id_deck = :id_deck";

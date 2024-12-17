@@ -58,7 +58,7 @@ return [
     /// GET ///
     ['GET', '/api/v1/cartes/administrateur', 'carte@getCartesForAdmin'], 
     ['GET', '/api/v1/cartes/createur/{id}', 'carte@getCartesForCreateur'],
-
+    ['GET', '/api/v1/cartes/{id}', 'carte@getCartesForOneDeck'],
     
     /// POST ///
     ['POST', '/api/v1/carte', 'carte@create'],

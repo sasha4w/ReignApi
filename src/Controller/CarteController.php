@@ -14,41 +14,7 @@ use Dotenv\Dotenv;
 
 class CarteController extends Controller
 {
-    /**
-     * Page d'accueil pour lister tous les cartes.
-     * @route [get] /
-     *
-     */
-    public function index()
-    {
-        header("Access-Control-Allow-Origin: *");
-        header("Access-Control-Allow-Headers: Content-Type");
-        header("Content-Type: application/json");
-        
-        // Détecter le rôle de l'utilisateur
-        $isLoggedInAsAdmin = isset($_SESSION['ad_mail_admin']);
-        $isLoggedInAsCreateur = isset($_SESSION['ad_mail_createur']);
-        
-        // Initialiser les variables communes
-        $decksInfos = [];
-        $cartesByDeck = [];
-        $currentTime = (new DateTime())->format('Y-m-d H:i:s');
 
-        if ($isLoggedInAsAdmin) {
-            $cartesByDeck = $this->getCartesForAdmin(); // Appel à la méthode dédiée
-        }
-
-        if ($isLoggedInAsCreateur) {
-            $cartesByDeck = $this->getCartesForCreateur(); // Appel à la méthode dédiée
-        }
-
-        $this->display('cartes/index.html.twig', compact(
-            'cartesByDeck', 
-            'isLoggedInAsAdmin', 
-            'isLoggedInAsCreateur', 
-            'currentTime'
-        ));
-    }
 
     /**
      * Renvoie les cartes pour un administrateur, regroupées par deck.
@@ -60,26 +26,56 @@ class CarteController extends Controller
         header("Content-Type: application/json");
     
         try {
+            // Récupérer les informations des decks
             $decksInfos = Carte::getInstance()->findAllWithDecksAdmin(); // All decks
+            // Récupérer toutes les cartes
             $cartes = Carte::getInstance()->findAll(); // All cards
-            $this->decodeCardChoices($cartes); // Decode choices
+            // Décode les choix des cartes
+            $this->decodeCardChoices($cartes);
     
-            $cartesByDeck = $this->groupCartesByDeck($decksInfos, $cartes);
+            // Organiser les cartes par deck
+            $cartesByDeck = [];
     
-            // Return JSON response
+            foreach ($decksInfos as $deckInfo) {
+                $deckId = $deckInfo['id_deck'];
+                $cartesForDeck = [];
+                $nbCartes = 0;
+    
+                // Récupérer les cartes liées au deck courant
+                foreach ($cartes as $carte) {
+                    if ($carte['id_deck'] == $deckId) {
+                        $cartesForDeck[] = $carte;
+                        $nbCartes++; // Compte le nombre de cartes pour ce deck
+                    }
+                }
+    
+                // Ajouter les informations sur le deck dans la réponse
+                $cartesByDeck[] = [
+                    'id_deck' => $deckId,
+                    'titre_deck' => $deckInfo['titre_deck'], // Titre du deck
+                    'nb_cartes' => $deckInfo['nb_cartes'], // nombre de cartes total
+                    'nb_cartes_ajoutées' => $nbCartes, // Nombre de cartes ajoutées
+                    'date_debut' => $deckInfo['date_debut'], // Date de début
+                    'date_fin_deck' => $deckInfo['date_fin_deck'], // Date de fin du deck
+                    'cartes' => $cartesForDeck // Cartes associées à ce deck
+                ];
+            }
+    
+            // Retourne la réponse JSON
             echo json_encode([
                 'status' => 'success',
                 'deck' => $cartesByDeck
             ], JSON_PRETTY_PRINT);
         } catch (Exception $e) {
-            // Return error response
-            http_response_code(500); // Internal Server Error
+            // En cas d'erreur, retourne une réponse d'erreur
+            http_response_code(500); // Erreur interne du serveur
             echo json_encode([
                 'status' => 'error',
                 'message' => $e->getMessage()
             ]);
         }
     }
+    
     
 
     /**
@@ -89,30 +85,106 @@ class CarteController extends Controller
     {
         // Force la conversion du paramètre en entier
         $id_createur = (int) $id_createur;
-    
-        // Le reste de ta logique
+        
+        // Définir les en-têtes pour la réponse JSON
         header("Access-Control-Allow-Origin: *");
         header("Access-Control-Allow-Headers: Content-Type");
         header("Content-Type: application/json");
-        
-        // Tu utilises maintenant l'ID passé dans l'URL au lieu de la variable de session
-        $decksInfos = Carte::getInstance()->findAllWithDecksCreateur(); // Decks du créateur
-        $cartesByDeck = [];
     
-        foreach ($decksInfos as $deckInfo) {
-            $deckId = (int)($deckInfo['id_deck'] ?? $deckInfo->id_deck);
-            $cartesByDeck[$deckId] = Carte::getInstance()->findByDeckAndCreateur($deckId, $id_createur);
-            $this->decodeCardChoices($cartesByDeck[$deckId]);
+        try {
+            // Récupérer les informations des decks du créateur
+            $decksInfos = Carte::getInstance()->findAllWithDecksCreateur(); // Decks du créateur
+            
+            // Organiser les cartes par deck
+            $cartesByDeck = [];
+            
+            // Parcourir les decks
+            foreach ($decksInfos as $deckInfo) {
+                $deckId = $deckInfo['id_deck'];
+                
+                // Utiliser la méthode findByDeckAndCreateur pour récupérer les cartes du créateur dans ce deck
+                $cartesForDeck = Carte::getInstance()->findByCreateur($id_createur);
+    
+                // Décode les choix des cartes
+                $this->decodeCardChoices($cartesForDeck);
+    
+                // Ajouter les informations sur le deck dans la réponse
+                $cartesByDeck[] = [
+                    'id_deck' => $deckId,
+                    'titre_deck' => $deckInfo['titre_deck'], // Titre du deck
+                    'nb_cartes' => $deckInfo['nb_cartes'], // nombre de cartes total
+                    'date_debut' => $deckInfo['date_debut'], // Date de début
+                    'date_fin_deck' => $deckInfo['date_fin_deck'], // Date de fin du deck
+                    'cartes' => $cartesForDeck // Cartes associées à ce deck
+                ];
+            }
+    
+            // Retourner la réponse JSON
+            echo json_encode([
+                'status' => 'success',
+                'deck' => $cartesByDeck
+            ], JSON_PRETTY_PRINT);
+    
+        } catch (Exception $e) {
+            // En cas d'erreur, retourner une réponse d'erreur
+            http_response_code(500); // Erreur interne du serveur
+            echo json_encode([
+                'status' => 'error',
+                'message' => $e->getMessage()
+            ]);
         }
-    
-        // Return JSON response
-        echo json_encode([
-            'status' => 'success',
-            'deck' => $cartesByDeck
-        ], JSON_PRETTY_PRINT);
     }
     
-    
+ /**
+ * Renvoie les cartes d'un deck spécifique.
+ */
+/**
+ * Renvoie les cartes d'un deck spécifique.
+ */
+public function getCartesForOneDeck($id_deck): void
+{
+    // Assurer que l'ID du deck est bien un entier
+    $id_deck = (int) $id_deck;
+
+    // Définir les en-têtes pour une réponse JSON
+    header("Access-Control-Allow-Origin: *");
+    header("Access-Control-Allow-Headers: Content-Type");
+    header("Content-Type: application/json");
+
+    try {
+        // Utiliser la méthode findByDeck pour récupérer toutes les cartes du deck
+        $cartes = Carte::getInstance()->findByDeck($id_deck);
+
+        // Si aucune carte n'est trouvée, renvoyer un message d'erreur
+        if (empty($cartes)) {
+            http_response_code(404); // Not Found
+            echo json_encode([
+                'status' => 'error',
+                'message' => 'Aucune carte trouvée pour ce deck.'
+            ]);
+            return;
+        }
+
+        // Décoder les choix des cartes (si nécessaire)
+        $this->decodeCardChoices($cartes);
+
+        // Renvoyer la réponse JSON avec les cartes
+        echo json_encode([
+            'status' => 'success',
+            'deck_id' => $id_deck,
+            'cartes' => $cartes
+        ], JSON_PRETTY_PRINT);
+
+    } catch (Exception $e) {
+        // En cas d'erreur, renvoyer un message d'erreur avec le code 500
+        http_response_code(500); // Internal Server Error
+        echo json_encode([
+            'status' => 'error',
+            'message' => $e->getMessage()
+        ]);
+    }
+}
+
     
 
     /**
@@ -195,7 +267,7 @@ class CarteController extends Controller
         }
         return $cartesByDeck;
     }
-    
+
     
 
     /**

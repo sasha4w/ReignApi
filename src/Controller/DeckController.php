@@ -72,6 +72,7 @@ class DeckController extends Controller
         }
     }
     
+    
     /**
      * Afficher le formulaire de saisie d'un nouvel deck ou traiter les
      * données soumises présentent dans $_POST.
@@ -360,17 +361,17 @@ class DeckController extends Controller
     // 2. Incrémenter le champ 'like' du créateur
     try {
         // Incrémenter la valeur du champ like de +1
-        $newLikeCount = $deck['like'] + 1;
+        $newLikeCount = $deck['nb_jaime'] + 1;
 
         // Mettre à jour la valeur du champ 'like' dans la base de données
-        Deck::getInstance()->update($id_deck, ['deck' => $newLikeCount]);
+        Deck::getInstance()->update($id_deck, ['nb_jaime' => $newLikeCount]);
 
         // 3. Renvoyer la réponse JSON avec le nouveau compteur de 'like'
         http_response_code(200); // OK
         echo json_encode([
             'message' => 'Avertissement ajouté avec succès.',
-            'id_createur' => $id_createur,
-            'new_like_count' => $newLikeCount
+            'id_deck' => $id_deck,
+            'new_nb_jaime' => $newLikeCount
         ]);
     } catch (Exception $e) {
         // Si une erreur se produit lors de la mise à jour, renvoyer une erreur 500
