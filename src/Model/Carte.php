@@ -56,6 +56,8 @@ class Carte extends Model
     {
         return $this->findAllBy(['id_deck' => $id_deck]);
     }
+
+
     public function findByCreateur( int $id_createur): ?array
     {
         return $this->findAllBy(['id_createur' => $id_createur]);
@@ -68,11 +70,17 @@ class Carte extends Model
         $result = $sth->fetch();
         return $result ? (int) $result['total'] : 0;
     }
-    public function getOrAssignRandomCard(int $deckId): ?array
+    
+    public function getOrAssignRandomCard(int $deckId, int $id_createur): ?array
     {
-        // Vérifie si une carte aléatoire existe déjà pour ce deck dans `carte aleatoire`
-        $sql = "SELECT id_carte FROM `carte_aleatoire` WHERE id_deck = :id_deck"; // Utiliser le nom de la table avec des backticks
-        $sth = $this->query($sql, [':id_deck' => $deckId]);
+        // Vérifie si une carte aléatoire existe déjà pour ce deck et ce créateur dans `carte_aleatoire`
+        $sql = "SELECT id_carte 
+                FROM `carte_aleatoire` 
+                WHERE id_deck = :id_deck AND id_createur = :id_createur"; // Ajout de la condition pour id_createur
+        $sth = $this->query($sql, [
+            ':id_deck' => $deckId,
+            ':id_createur' => $id_createur
+        ]);
         $carteId = $sth->fetchColumn();
     
         if ($carteId) {
@@ -81,15 +89,26 @@ class Carte extends Model
             $sth = $this->query($sql, [':id_carte' => $carteId]);
             $carte = $sth->fetch();
         } else {
-            // Sinon, en tirer une au hasard
-            $sql = "SELECT * FROM {$this->tableName} WHERE id_deck = :id_deck ORDER BY RAND() LIMIT 1";
-            $sth = $this->query($sql, [':id_deck' => $deckId]);
+            // Sinon, en tirer une au hasard parmi les cartes associées au deck et au créateur
+            $sql = "SELECT * 
+                    FROM {$this->tableName} 
+                    WHERE id_deck = :id_deck AND id_createur = :id_createur 
+                    ORDER BY RAND() LIMIT 1"; // Ajout de la condition pour id_createur
+            $sth = $this->query($sql, [
+                ':id_deck' => $deckId,
+                ':id_createur' => $id_createur
+            ]);
             $carte = $sth->fetch();
     
             if ($carte) {
-                // Associer la carte tirée au deck dans `carte aleatoire`
-                $insertSql = "INSERT INTO `carte_aleatoire` (id_deck, id_carte) VALUES (:id_deck, :id_carte)"; // Utiliser le nom de la table avec des backticks
-                $this->query($insertSql, [':id_deck' => $deckId, ':id_carte' => $carte['id_carte']]);
+                // Associer la carte tirée au deck et au créateur dans `carte_aleatoire`
+                $insertSql = "INSERT INTO `carte_aleatoire` (id_deck, id_carte, id_createur) 
+                              VALUES (:id_deck, :id_carte, :id_createur)";
+                $this->query($insertSql, [
+                    ':id_deck' => $deckId,
+                    ':id_carte' => $carte['id_carte'],
+                    ':id_createur' => $id_createur
+                ]);
             }
         }
     
@@ -102,5 +121,21 @@ class Carte extends Model
         return $carte ?: null;
     }
     
+    public function calculateNextOrder(int $id_deck): int
+    {
+        // Requête pour obtenir la plus grande valeur de ordre_soumission
+        $sql = "SELECT MAX(ordre_soumission) AS max_order 
+                FROM {$this->tableName} 
+                WHERE id_deck = :id_deck";
+    
+        // Exécuter la requête
+        $sth = $this->query($sql, [':id_deck' => $id_deck]);
+        $result = $sth->fetch();
+    
+        // Retourner max_order + 1, ou 1 si aucune carte n'existe
+        return $result && $result['max_order'] !== null ? (int) $result['max_order'] + 1 : 1;
+    }
+    
+
     
 }

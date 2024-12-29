@@ -11,22 +11,11 @@ use DateTime;
 use Firebase\JWT\JWT;
 use Firebase\JWT\Key;
 use Dotenv\Dotenv;
-class CreateurController extends Controller
+class CreateurController extends AuthController
 {
 
 
-    /**
-     * Page d'accueil pour lister tous les createurs.
-     * @route [get] /
-     *
-     */
-    public function index()
-    {
-        // Vérifier si l'utilisateur (créateur) est connecté
-        $isLoggedIn = isset($_SESSION['ad_mail_createur']);
-        $nom_createur = $isLoggedIn ? $_SESSION['nom_createur'] : null;
-        $this->display('createurs/index.html.twig', compact('isLoggedIn','nom_createur'));
-    }
+
     
 
     /**
@@ -113,77 +102,7 @@ class CreateurController extends Controller
     
     public function login()
     {
-        header("Access-Control-Allow-Origin: *");
-        header("Access-Control-Allow-Headers: Content-Type");
-        header("Content-Type: application/json");
-        
-        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $dotenv = Dotenv::createImmutable(__DIR__ . '/../../');  
-            $dotenv->load();
-            $data = json_decode(file_get_contents('php://input'), true);
-    
-            $ad_mail_createur = filter_var(trim($data['ad_mail_createur'] ?? ''), FILTER_SANITIZE_EMAIL);
-            $mdp_createur = trim($data['mdp_createur'] ?? '');
-    
-            if (!filter_var($ad_mail_createur, FILTER_VALIDATE_EMAIL)) {
-                http_response_code(400);
-                echo json_encode(['error' => 'Email non valide.']);
-                return;
-            }
-    
-            if (empty($ad_mail_createur) || empty($mdp_createur)) {
-                http_response_code(400);
-                echo json_encode(['error' => 'Les champs email et mot de passe sont requis.']);
-                return;
-            }
-    
-            $createur = Createur::getInstance()->findOneBy(['ad_mail_createur' => $ad_mail_createur]);
-    
-            if (!$createur) {
-                http_response_code(404); // Non trouvé
-                echo json_encode(['error' => 'Créateur non trouvé.']);
-                return;
-            }
-    
-            if (!password_verify($mdp_createur, $createur['mdp_createur'])) {
-                http_response_code(401); // Non autorisé
-                echo json_encode(['error' => 'Mot de passe incorrect.']);
-                return;
-            }
-    
-            // Récupérer la clé secrète directement ici
-            $jwtSecret = $_ENV['JWT_SECRET'];
-            if ($jwtSecret === false) {
-                http_response_code(500);
-                echo json_encode(['error' => 'Clé secrète JWT manquante.']);
-                return;
-            }
-    
-            // Générer le token JWT
-            $payload = [
-                'id_createur' => $createur['id_createur'],
-                'ad_mail_createur' => $createur['ad_mail_createur'],
-                'nom_createur' => $createur['nom_createur'],
-                'iat' => time(),
-                'exp' => time() + 3600, // Expire dans une heure
-            ];
-    
-            try {
-                $jwt = JWT::encode($payload, $jwtSecret, 'HS256');
-    
-                // Log du token généré pour le débogage
-                error_log("Token JWT généré : " . $jwt);
-    
-                http_response_code(200);
-                echo json_encode(['token' => $jwt]);
-            } catch (Exception $e) {
-                http_response_code(500);
-                echo json_encode(['error' => 'Erreur lors de la génération du token.']);
-            }
-        } else {
-            http_response_code(405);
-            echo json_encode(['error' => 'Méthode non autorisée.']);
-        }
+        return $this->unifiedLogin('createur');
     }
     
     
