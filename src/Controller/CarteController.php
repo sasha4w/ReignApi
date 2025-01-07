@@ -638,16 +638,12 @@ public function createOrGetRandom($deck_id)
     
     
     
-    /**
-     * Effacer un carte.
-     * @route [get] /cartes/effacer/{id}
-     *
-     */
+
 /**
  * Supprimer une carte.
  * @route [delete] /cartes/effacer/{id}
  */
-public function delete(int|string $id)
+public function delete(int|string $carteId)
 {
     // Définir les en-têtes pour une réponse JSON
     header("Access-Control-Allow-Origin: *");
@@ -656,36 +652,71 @@ public function delete(int|string $id)
 
     $responseLogs = [];
 
-    // Forcer l'ID à être un entier
-    $id = (int) $id;
+    if ($_SERVER['REQUEST_METHOD'] === 'DELETE') {
+        $responseLogs[] = "=== Début de la requête pour suppression de carte ===";
 
-    // Vérifier si la carte existe
-    $carte = Carte::getInstance()->findOneBy(['id_carte' => $id]);
-    if (!$carte) {
-        $responseLogs[] = "Carte introuvable avec l'ID : $id.";
-        http_response_code(404); // Not Found
-        echo json_encode(['error' => 'Carte introuvable.', 'logs' => $responseLogs]);
-        return;
+        // Charger les variables d'environnement
+        $dotenv = Dotenv::createImmutable(__DIR__ . '/../../');
+        $dotenv->load();
+
+        // Récupérer le token depuis l'en-tête Authorization
+        $headers = getallheaders();
+        $authHeader = $headers['Authorization'] ?? '';
+        $responseLogs[] = "Authorization Header: " . $authHeader;
+
+        if (!preg_match('/Bearer\s(\S+)/', $authHeader, $matches)) {
+            $responseLogs[] = "Token manquant ou invalide.";
+            http_response_code(401); // Unauthorized
+            echo json_encode(['error' => 'Token manquant ou invalide.', 'logs' => $responseLogs]);
+            return;
+        }
+
+        $jwt = $matches[1]; // Le token JWT
+        $responseLogs[] = "JWT reçu : " . $jwt;
+
+        $jwtSecret = $_ENV['JWT_SECRET'];
+
+        try {
+            // Décoder le token
+            $decoded = JWT::decode($jwt, new Key($jwtSecret, 'HS256'));
+            $responseLogs[] = "JWT décodé : " . json_encode($decoded);
+        } catch (Exception $e) {
+            $responseLogs[] = "Erreur lors du décodage du token : " . $e->getMessage();
+            http_response_code(401); // Unauthorized
+            echo json_encode(['error' => 'Token invalide : ' . $e->getMessage(), 'logs' => $responseLogs]);
+            return;
+        }
+
+        // Vérifier l'existence du carte avant de tenter la suppression
+        $carte = Carte::getInstance()->findOneBy(['id_carte' => $carteId]);
+        if (!$carte) {
+            $responseLogs[] = "Carte non trouvé.";
+            http_response_code(404); // Not Found
+            echo json_encode(['error' => 'Carte non trouvé.', 'logs' => $responseLogs]);
+            return;
+        }
+
+        // Supprimer le carte en utilisant la méthode delete avec un tableau de critères
+        if (Carte::getInstance()->delete(['id_carte' => $carteId])) {
+            $responseLogs[] = "Carte supprimé avec succès.";
+            http_response_code(200); // OK
+            echo json_encode([
+                'status' => 'success',
+                'message' => 'Carte supprimé avec succès.',
+                'logs' => $responseLogs
+            ]);
+        } else {
+            $responseLogs[] = "Erreur lors de la suppression du carte.";
+            http_response_code(500); // Internal Server Error
+            echo json_encode(['error' => 'Erreur lors de la suppression du carte.', 'logs' => $responseLogs]);
+        }
+    } else {
+        $responseLogs[] = "Méthode non autorisée.";
+        http_response_code(405); // Method Not Allowed
+        echo json_encode(['error' => 'Méthode non autorisée.', 'logs' => $responseLogs]);
     }
 
-    // Supprimer la carte
-    try {
-        Carte::getInstance()->delete(['id_carte' => $id]);
-        $responseLogs[] = "Carte supprimée avec succès. ID : $id";
-
-        // Envoyer une réponse JSON de succès
-        http_response_code(200); // OK
-        echo json_encode([
-            'status' => 'success',
-            'message' => "Carte avec l'ID $id supprimée avec succès.",
-            'logs' => $responseLogs
-        ]);
-    } catch (Exception $e) {
-        // Gérer les erreurs lors de la suppression
-        $responseLogs[] = "Erreur lors de la suppression de la carte : " . $e->getMessage();
-        http_response_code(500); // Internal Server Error
-        echo json_encode(['error' => 'Erreur lors de la suppression de la carte.', 'logs' => $responseLogs]);
-    }
+    $responseLogs[] = "=== Fin de la requête ===";
 }
 
 }

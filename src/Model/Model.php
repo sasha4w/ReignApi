@@ -213,11 +213,24 @@ class Model
      * @param  integer  $id identifiant à effacer
      * @return bool
      */
-    public function delete(
-        int $id
-    ): bool {
-        $sql = "DELETE FROM `{$this->tableName}` WHERE id = :id";
-        $sth = $this->query($sql, [':id' => $id]);
+    public function delete(array $criterias): bool
+    {
+        // Décomposer les critères
+        foreach ($criterias as $field => $value) {
+            $fields[] = "$field = ?";
+            $values[] = $value;
+        }
+    
+        // Générer la liste des conditions SQL avec les critères fournis
+        $fields_list = implode(' AND ', $fields);
+    
+        // Construire la requête SQL de suppression
+        $sql = "DELETE FROM `{$this->tableName}` WHERE $fields_list";
+    
+        // Exécuter la requête
+        $sth = $this->query($sql, $values);
+    
+        // Retourner true si des lignes ont été supprimées, sinon false
         return $sth->rowCount() > 0;
     }
 
