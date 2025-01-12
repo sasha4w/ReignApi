@@ -201,92 +201,67 @@ public function getCartesForOneDeck($id_deck): void
         ]);
     }
 }
-public function createOrGetRandom($deck_id)
+public function createOrGetRandom(int|string $id_deck)
 {
     header("Access-Control-Allow-Origin: *");
     header("Access-Control-Allow-Headers: Content-Type, Authorization");
     header("Content-Type: application/json");
-
-    $responseLogs = [];
-
-    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-        $responseLogs[] = "=== Début de la requête pour assigner une carte aléatoire ===";
-
-        // Charger les variables d'environnement
+   
+    try {
         $dotenv = Dotenv::createImmutable(__DIR__ . '/../../');
         $dotenv->load();
-
-        // Récupérer le token depuis l'en-tête Authorization
-        $headers = getallheaders();
-        $authHeader = $headers['Authorization'] ?? '';
-        $responseLogs[] = "Authorization Header: " . $authHeader;
-
-        if (!preg_match('/Bearer\s(\S+)/', $authHeader, $matches)) {
-            $responseLogs[] = "Token manquant ou invalide.";
-            http_response_code(401); // Unauthorized
-            echo json_encode(['error' => 'Token manquant ou invalide.', 'logs' => $responseLogs]);
+       
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            http_response_code(405);
+            echo json_encode(['error' => 'Méthode non autorisée']);
             return;
         }
 
-        $jwt = $matches[1]; // Le token JWT
-        $jwtSecret = $_ENV['JWT_SECRET'];
+        $headers = getallheaders();
+        $authHeader = $headers['Authorization'] ?? '';
+        
+        if (!preg_match('/Bearer\s(\S+)/', $authHeader, $matches)) {
+            http_response_code(401);
+            echo json_encode(['error' => 'Token manquant ou invalide']);
+            return;
+        }
 
+        $jwt = $matches[1];
+        $jwtSecret = $_ENV['JWT_SECRET'];
+       
         try {
             $decoded = JWT::decode($jwt, new Key($jwtSecret, 'HS256'));
-            $responseLogs[] = "JWT décodé : " . json_encode($decoded);
-        } catch (Exception $e) {
-            $responseLogs[] = "Erreur lors du décodage du token : " . $e->getMessage();
-            http_response_code(401); // Unauthorized
-            echo json_encode(['error' => 'Token invalide : ' . $e->getMessage(), 'logs' => $responseLogs]);
+        } catch (\Exception $e) {
+            http_response_code(401);
+            echo json_encode(['error' => 'Token invalide']);
             return;
         }
 
         $id_createur_from_token = $decoded->id_createur ?? null;
-
         if (!$id_createur_from_token) {
-            $responseLogs[] = "Aucun créateur identifié dans le token.";
-            http_response_code(403); // Forbidden
-            echo json_encode(['error' => 'Vous devez être connecté en tant que créateur.', 'logs' => $responseLogs]);
+            http_response_code(403);
+            echo json_encode(['error' => 'Identifiant créateur non trouvé']);
             return;
         }
 
-        // Valider le `deck_id` extrait de l'URL
-        if (!$deck_id) {
-            $responseLogs[] = "Deck ID manquant dans l'URL.";
-            http_response_code(400); // Bad Request
-            echo json_encode(['error' => 'L\'identifiant du deck est requis.', 'logs' => $responseLogs]);
+        $carte = Carte::getInstance()->findOrCreateRandomCard((int)$id_deck, (int)$id_createur_from_token);
+        
+        if (!$carte) {
+            http_response_code(404);
+            echo json_encode(['error' => 'Aucune carte disponible']);
             return;
         }
 
-        try {
-            $carteAleatoire = Carte::getInstance()->getOrAssignRandomCard($deck_id, $id_createur_from_token);
-            $responseLogs[] = "Carte aléatoire récupérée ou assignée : " . json_encode($carteAleatoire);
+        http_response_code(200);
+        echo json_encode([
+            'status' => 'success',
+            'card' => $carte
+        ]);
 
-            if (!$carteAleatoire) {
-                $responseLogs[] = "Aucune carte trouvée pour ce deck et ce créateur.";
-                http_response_code(404); // Not Found
-                echo json_encode(['error' => 'Aucune carte disponible pour ce deck.', 'logs' => $responseLogs]);
-                return;
-            }
-
-            http_response_code(201); 
-            echo json_encode([
-                'status' => 'success',
-                'random_card' => $carteAleatoire,
-                'logs' => $responseLogs
-            ]);
-        } catch (Exception $e) {
-            $responseLogs[] = "Erreur lors de l'assignation de la carte aléatoire : " . $e->getMessage();
-            http_response_code(500); // Internal Server Error
-            echo json_encode(['error' => 'Erreur interne lors de l\'assignation de la carte aléatoire.', 'logs' => $responseLogs]);
-        }
-    } else {
-        $responseLogs[] = "Méthode non autorisée.";
-        http_response_code(405); // Method Not Allowed
-        echo json_encode(['error' => 'Méthode non autorisée.', 'logs' => $responseLogs]);
+    } catch (\Exception $e) {
+        http_response_code(500);
+        echo json_encode(['error' => 'Une erreur est survenue lors du traitement de la requête']);
     }
-
-    $responseLogs[] = "=== Fin de la requête ===";
 }
 
 

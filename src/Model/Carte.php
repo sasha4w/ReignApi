@@ -71,56 +71,78 @@ class Carte extends Model
         return $result ? (int) $result['total'] : 0;
     }
     
-    public function getOrAssignRandomCard(int $deckId, int $id_createur): ?array
+    public function findOrCreateRandomCard(int $deckId, int $creatorId): ?array
     {
-        // Vérifie si une carte aléatoire existe déjà pour ce deck et ce créateur dans `carte_aleatoire`
-        $sql = "SELECT id_carte 
-                FROM `carte_aleatoire` 
-                WHERE id_deck = :id_deck AND id_createur = :id_createur"; // Ajout de la condition pour id_createur
-        $sth = $this->query($sql, [
-            ':id_deck' => $deckId,
-            ':id_createur' => $id_createur
-        ]);
-        $carteId = $sth->fetchColumn();
+        try {
+            // Log des paramètres
+            error_log("findOrCreateRandomCard - deckId: $deckId, creatorId: $creatorId");
     
-        if ($carteId) {
-            // Si une carte est déjà assignée, la récupérer
-            $sql = "SELECT * FROM {$this->tableName} WHERE id_carte = :id_carte";
-            $sth = $this->query($sql, [':id_carte' => $carteId]);
-            $carte = $sth->fetch();
-        } else {
-            // Sinon, en tirer une au hasard parmi les cartes associées au deck et au créateur
-            $sql = "SELECT * 
-                    FROM {$this->tableName} 
-                    WHERE id_deck = :id_deck AND id_createur = :id_createur 
-                    ORDER BY RAND() LIMIT 1"; // Ajout de la condition pour id_createur
-            $sth = $this->query($sql, [
+            // Vérification de l'existence
+            $sql = "SELECT c.* 
+                    FROM `" . APP_TABLE_PREFIX . "carte_aleatoire` ca
+                    JOIN `" . APP_TABLE_PREFIX . "carte` c ON ca.id_carte = c.id_carte
+                    WHERE ca.id_deck = :id_deck 
+                    AND ca.id_createur = :id_createur";
+    
+            $params = [
                 ':id_deck' => $deckId,
-                ':id_createur' => $id_createur
-            ]);
+                ':id_createur' => $creatorId
+            ];
+    
+            error_log("SQL Vérification: " . $sql);
+            error_log("Params: " . json_encode($params));
+    
+            $sth = $this->query($sql, $params);
             $carte = $sth->fetch();
+    
+            if (!$carte) {
+                // Sélection nouvelle carte
+                error_log("Aucune carte existante, sélection aléatoire");
+                
+                $sql = "SELECT * FROM `" . $this->tableName . "` 
+                        WHERE id_deck = :id_deck 
+                        ORDER BY RAND() LIMIT 1";
+                        
+                $sth = $this->query($sql, [':id_deck' => $deckId]);
+                $carte = $sth->fetch();
+    
+                if ($carte) {
+                    error_log("Nouvelle carte sélectionnée: " . $carte['id_carte']);
+                    
+                    // Insertion dans carte_aleatoire
+                    $insertSql = "INSERT INTO `" . APP_TABLE_PREFIX . "carte_aleatoire` 
+                                (id_deck, id_createur, id_carte) 
+                                VALUES (:id_deck, :id_createur, :id_carte)";
+                                
+                    $this->query($insertSql, [
+                        ':id_deck' => $deckId,
+                        ':id_createur' => $creatorId,
+                        ':id_carte' => $carte['id_carte']
+                    ]);
+                }
+            }
     
             if ($carte) {
-                // Associer la carte tirée au deck et au créateur dans `carte_aleatoire`
-                $insertSql = "INSERT INTO `carte_aleatoire` (id_deck, id_carte, id_createur) 
-                              VALUES (:id_deck, :id_carte, :id_createur)";
-                $this->query($insertSql, [
-                    ':id_deck' => $deckId,
-                    ':id_carte' => $carte['id_carte'],
-                    ':id_createur' => $id_createur
-                ]);
+                // Décodage JSON sécurisé
+                foreach (['valeurs_choix1', 'valeurs_choix2'] as $field) {
+                    if (isset($carte[$field]) && !is_null($carte[$field])) {
+                        $decoded = json_decode($carte[$field], true);
+                        $carte[$field] = $decoded !== null ? $decoded : [];
+                    } else {
+                        $carte[$field] = [];
+                    }
+                }
             }
-        }
     
-        // Décoder les valeurs de choix en JSON si une carte est trouvée
-        if ($carte) {
-            $carte['valeurs_choix1'] = json_decode($carte['valeurs_choix1'], true);
-            $carte['valeurs_choix2'] = json_decode($carte['valeurs_choix2'], true);
-        }
+            return $carte ?: null;
     
-        return $carte ?: null;
+        } catch (\Exception $e) {
+            error_log("Erreur dans findOrCreateRandomCard: " . $e->getMessage());
+            error_log("Stack trace: " . $e->getTraceAsString());
+            throw $e;
+        }
     }
-    
+
     public function calculateNextOrder(int $id_deck): int
     {
         // Requête pour obtenir la plus grande valeur de ordre_soumission

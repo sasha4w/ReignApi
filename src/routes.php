@@ -78,7 +78,7 @@ return [
     /// GET ///
        
     /// POST ///
-    ['POST', '/api/v1/carte/aleatoire/deck/{deck_id}', 'carte@createOrGetRandom'],
+    ['POST', '/ReignApi/api/v1/carte/aleatoire/deck/{deck_id}', 'carte@createOrGetRandom'],
 
     /// PATCH ///
     
