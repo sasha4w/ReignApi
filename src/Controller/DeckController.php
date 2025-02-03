@@ -21,12 +21,8 @@ class DeckController extends Controller
      */
     public function getDecks()
     {
-        // Vérifier si l'utilisateur est connecté
-        $isLoggedIn = isset($_SESSION['ad_mail_admin']);
-        $ad_mail_admin = $isLoggedIn ? $_SESSION['ad_mail_admin'] : null;
-    
-        // Récupérer les informations sur les decks
-        $decks = Deck::getInstance()->findAll();
+        // Récupérer les informations sur les decks avec le nombre de cartes
+        $decks = Deck::getInstance()->findAllWithCardCount();
     
         // Vérifier si des decks ont été récupérés
         if ($decks) {
@@ -47,6 +43,72 @@ class DeckController extends Controller
             ]);
         }
     }
+    
+    public function getDecksNew()
+    {
+        // Définir les en-têtes pour une réponse JSON et CORS
+        header("Access-Control-Allow-Origin: *");
+        header("Access-Control-Allow-Headers: Content-Type, Authorization");
+        header("Content-Type: application/json");
+    
+        // Charger les variables d'environnement
+        $dotenv = Dotenv::createImmutable(__DIR__ . '/../../');
+        $dotenv->load();
+    
+        try {
+            // Récupérer le token depuis l'en-tête Authorization
+            $headers = getallheaders();
+            $authHeader = $headers['Authorization'] ?? '';
+    
+            $id_createur_from_token = null;
+            $id_administrateur_from_token = null;
+            $jwtSecret = $_ENV['JWT_SECRET'];
+    
+            if (preg_match('/Bearer\s(\S+)/', $authHeader, $matches)) {
+                // Si un token est présent, tenter de le décoder
+                $jwt = $matches[1];
+    
+                try {
+                    $decoded = JWT::decode($jwt, new Key($jwtSecret, 'HS256'));
+                    $id_createur_from_token = $decoded->id_createur ?? null;
+                    $id_administrateur_from_token = $decoded->id_administrateur ?? null;
+                } catch (Exception $e) {
+                    // Si le token est invalide, on ignore et traite comme un utilisateur non authentifié
+                    error_log("Erreur JWT : " . $e->getMessage()); 
+                }
+            }
+    
+            // Si l'utilisateur est authentifié
+            if ($id_createur_from_token || $id_administrateur_from_token) {
+                $decks = $id_administrateur_from_token 
+                    ? Deck::getInstance()->findAllGroupedByStatus() 
+                    : Deck::getInstance()->findDeckUpdatable();
+            } else {
+                // Si pas de token ou invalide, renvoyer uniquement les decks "Playable"
+                $decks = Deck::getInstance()->findPlayableDecks();
+            }
+    
+            // Vérifier si des decks ont été trouvés
+            if (empty($decks)) {
+                throw new Exception("Aucun deck trouvé.");
+            }
+    
+            // Retourner les decks
+            echo json_encode([
+                'status' => 'success',
+                'decks' => $decks
+            ]);
+    
+        } catch (Exception $e) {
+            http_response_code(500);
+            echo json_encode([
+                'status' => 'error',
+                'message' => $e->getMessage()
+            ]);
+        }
+    }
+    
+
     public function getPlayableDecks()
     {
         // Récupérer les decks jouables
@@ -87,127 +149,126 @@ class DeckController extends Controller
         header("Access-Control-Allow-Headers: Content-Type, Authorization");
         header("Content-Type: application/json");
     
-        // Tableau pour stocker les logs à inclure dans la réponse
-        $responseLogs = [];
     
-        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $responseLogs[] = "=== Début de la requête pour création de deck ===";
-    
-            // Charger les variables d'environnement
-            $dotenv = Dotenv::createImmutable(__DIR__ . '/../../');
-            $dotenv->load();
-    
-            // Récupérer le token depuis l'en-tête Authorization
-            $headers = getallheaders();
-            $authHeader = $headers['Authorization'] ?? '';
-            $responseLogs[] = "Authorization Header: " . $authHeader;
-    
-            if (!preg_match('/Bearer\s(\S+)/', $authHeader, $matches)) {
-                $responseLogs[] = "Token manquant ou invalide.";
-                http_response_code(401); // Unauthorized
-                echo json_encode(['error' => 'Token manquant ou invalide.', 'logs' => $responseLogs]);
-                return;
-            }
-    
-            $jwt = $matches[1]; // Le token JWT
-            $responseLogs[] = "JWT reçu : " . $jwt;
-    
-            $jwtSecret = $_ENV['JWT_SECRET'];
-            $responseLogs[] = "JWT_SECRET : " . $jwtSecret;
-    
-            try {
-                // Décoder le token
-                $decoded = JWT::decode($jwt, new Key($jwtSecret, 'HS256'));
-                $responseLogs[] = "JWT décodé : " . json_encode($decoded);
-            } catch (Exception $e) {
-                $responseLogs[] = "Erreur lors du décodage du token : " . $e->getMessage();
-                http_response_code(401); // Unauthorized
-                echo json_encode(['error' => 'Token invalide : ' . $e->getMessage(), 'logs' => $responseLogs]);
-                return;
-            }
-    
-            // Extraire l'ID de l'administrateur depuis le JWT
-            $id_administrateur_from_token = $decoded->id_administrateur ?? null;
-    
-            // Récupérer les données JSON envoyées dans le corps de la requête
-            $data = json_decode(file_get_contents('php://input'), true);
-            $responseLogs[] = "Données reçues : " . json_encode($data);
-    
-            // Vérification des données envoyées
-            if (!isset($data['titre_deck']) || !isset($data['date_fin_deck']) || !isset($data['nb_cartes']) || !isset($data['id_administrateur'])) {
-                $responseLogs[] = "Champs obligatoires manquants.";
-                http_response_code(400); // Bad Request
-                echo json_encode(['error' => 'Tous les champs obligatoires doivent être remplis.', 'logs' => $responseLogs]);
-                return;
-            }
-    
-            // Extraire les données de la requête
-            $titre_deck = $data['titre_deck'];
-            $date_fin_deck = $data['date_fin_deck'];
-            $nb_cartes = $data['nb_cartes'];
-            $id_administrateur_from_request = $data['id_administrateur'];  // L'ID administrateur envoyé par la requête
-    
-            $responseLogs[] = "Titre deck : $titre_deck, Date fin : $date_fin_deck, Nombre de cartes : $nb_cartes, ID administrateur envoyé : $id_administrateur_from_request";
-    
-            // Vérification que l'ID administrateur de la requête correspond à celui du token
-            if ($id_administrateur_from_request != $id_administrateur_from_token) {
-                $responseLogs[] = "ID administrateur invalide.";
-                http_response_code(403); // Forbidden
-                echo json_encode(['error' => 'ID administrateur invalide.', 'logs' => $responseLogs]);
-                return;
-            }
-    
-            // Validation de la date
-            if (!DateTime::createFromFormat('Y-m-d', $date_fin_deck)) {
-                $responseLogs[] = "Format de la date invalide.";
-                http_response_code(400); // Bad Request
-                echo json_encode(['error' => 'Format de la date invalide. Utilisez le format YYYY-MM-DD.', 'logs' => $responseLogs]);
-                return;
-            }
-    
-            // Validation du nombre de cartes
-            if (!is_numeric($nb_cartes) || intval($nb_cartes) <= 0) {
-                $responseLogs[] = "Le nombre de cartes doit être un entier positif.";
-                http_response_code(400); // Bad Request
-                echo json_encode(['error' => 'Le nombre de cartes doit être un entier positif.', 'logs' => $responseLogs]);
-                return;
-            }
-    
-            // Créer le nouveau deck
-            $deckId = Deck::getInstance()->create([
-                'titre_deck' => $titre_deck,
-                'date_fin_deck' => $date_fin_deck,
-                'nb_cartes' => intval($nb_cartes),
-                'id_administrateur' => $id_administrateur_from_request, // Utilisation de l'ID administrateur envoyé
-            ]);
-    
-            if ($deckId) {
-                $responseLogs[] = "Deck créé avec succès. ID : $deckId";
-                http_response_code(201); // Created
-                echo json_encode([
-                    'status' => 'success',
-                    'deck' => [
-                        'id_deck' => $deckId,
-                        'titre_deck' => $titre_deck,
-                        'date_fin_deck' => $date_fin_deck,
-                        'nb_cartes' => $nb_cartes,
-                        'id_administrateur' => $id_administrateur_from_request,
-                    ],
-                    'logs' => $responseLogs
-                ]);
-            } else {
-                $responseLogs[] = "Erreur lors de la création du deck.";
-                http_response_code(500); // Internal Server Error
-                echo json_encode(['error' => 'Erreur lors de la création du deck.', 'logs' => $responseLogs]);
-            }
-        } else {
-            $responseLogs[] = "Méthode non autorisée.";
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             http_response_code(405); // Method Not Allowed
-            echo json_encode(['error' => 'Méthode non autorisée.', 'logs' => $responseLogs]);
+            echo json_encode(['error' => 'Méthode non autorisée.']);
+            return;
         }
     
-        $responseLogs[] = "=== Fin de la requête ===";
+    
+        // Charger les variables d'environnement
+        $dotenv = Dotenv::createImmutable(__DIR__ . '/../../');
+        $dotenv->load();
+    
+        // Récupérer le token depuis l'en-tête Authorization
+        $headers = getallheaders();
+        $authHeader = $headers['Authorization'] ?? '';
+    
+        if (!preg_match('/Bearer\s(\S+)/', $authHeader, $matches)) {
+            http_response_code(401); // Unauthorized
+            echo json_encode(['error' => 'Token manquant ou invalide.']);
+            return;
+        }
+    
+        $jwt = $matches[1]; // Le token JWT
+    
+        $jwtSecret = $_ENV['JWT_SECRET'];
+    
+        try {
+            // Décoder le token
+            $decoded = JWT::decode($jwt, new Key($jwtSecret, 'HS256'));
+        } catch (Exception $e) {
+            http_response_code(401); // Unauthorized
+            echo json_encode(['error' => 'Token invalide : ' . $e->getMessage()]);
+            return;
+        }
+    
+        // Extraire l'ID de l'administrateur depuis le JWT
+        $id_administrateur_from_token = $decoded->id_administrateur ?? null;
+    
+        if (!$id_administrateur_from_token) {
+            http_response_code(401); // Unauthorized
+            echo json_encode(['error' => 'ID administrateur manquant dans le token.']);
+            return;
+        }
+    
+        // Récupérer les données JSON envoyées dans le corps de la requête
+        $data = json_decode(file_get_contents('php://input'), true);
+    
+        // Vérification des données envoyées
+        if (!isset($data['titre_deck']) || !isset($data['date_debut']) || !isset($data['date_fin_deck']) || !isset($data['nb_cartes'])) {
+            http_response_code(400); // Bad Request
+            echo json_encode(['error' => 'Tous les champs obligatoires doivent être remplis.']);
+            return;
+        }
+    
+        // Extraire les données de la requête
+        $titre_deck = $data['titre_deck'];
+        $nb_cartes = $data['nb_cartes'];
+    
+        // Validation et création des objets DateTime
+        $dateDebut = DateTime::createFromFormat('Y-m-d', $data['date_debut']);
+        $dateFin = DateTime::createFromFormat('Y-m-d', $data['date_fin_deck']);
+    
+        // Vérification si les dates sont valides
+        if (!$dateDebut || !$dateFin) {
+            http_response_code(400); // Bad Request
+            echo json_encode(['error' => 'Format de la date invalide. Utilisez le format YYYY-MM-DD.']);
+            return;
+        }
+        
+        // Vérification que la date de début est inférieure à la date de fin
+        if ($dateDebut >= $dateFin) {
+            http_response_code(400); // Bad Request
+            echo json_encode(['error' => 'La date de début doit être antérieure à la date de fin.']);
+            return;
+        }
+
+        // Validation du chevauchement des dates
+        if (Deck::getInstance()->checkDeckDateOverlap($dateDebut, $dateFin)) {
+            http_response_code(400);
+            echo json_encode(['error' => 'Les dates se chevauchent avec un deck existant.']);
+            return;
+        }
+    
+        // Validation du nombre de cartes
+        if (!is_numeric($nb_cartes) || intval($nb_cartes) <= 0) {
+            http_response_code(400); // Bad Request
+            echo json_encode(['error' => 'Le nombre de cartes doit être un entier positif.']);
+            return;
+        }
+    
+        // Créer le nouveau deck
+        $deckId = Deck::getInstance()->create([
+            'titre_deck' => $titre_deck,
+            'date_debut' => $dateDebut->format('Y-m-d'),
+            'date_fin_deck' => $dateFin->format('Y-m-d'),
+            'nb_cartes' => intval($nb_cartes),
+            'id_administrateur' => $id_administrateur_from_token,
+        ]);
+    
+        if ($deckId) {
+            http_response_code(201); // Created
+            echo json_encode([
+                'status' => 'success',
+                'deck' => [
+                    'id_deck' => $deckId,
+                    'titre_deck' => $titre_deck,
+                    'date_debut' => $dateDebut->format('Y-m-d'),
+                    'date_fin_deck' => $dateFin->format('Y-m-d'),
+                    'nb_cartes' => $nb_cartes,
+                    'id_administrateur' => $id_administrateur_from_token,
+                ]
+            ]);
+        } else {
+            http_response_code(500); // Internal Server Error
+            echo json_encode(['error' => 'Erreur lors de la création du deck.']);
+        }
+    
     }
+    
+    
     
     
     public function update(int|string $id)
@@ -216,7 +277,6 @@ class DeckController extends Controller
         header("Access-Control-Allow-Headers: Content-Type, Authorization");
         header("Content-Type: application/json");
     
-        $responseLogs = [];
     
         // Forcer l'ID à être un entier
         $id = (int)$id;
@@ -224,24 +284,20 @@ class DeckController extends Controller
         // Récupérer le deck existant avec findOneBy
         $deck = Deck::getInstance()->findOneBy(['id_deck' => $id]);
         if (!$deck) {
-            $responseLogs[] = "Deck introuvable avec l'ID : $id.";
             http_response_code(404); // Not Found
-            echo json_encode(['error' => 'Deck introuvable.', 'logs' => $responseLogs]);
+            echo json_encode(['error' => 'Deck introuvable.']);
             return;
         }
     
         if ($_SERVER['REQUEST_METHOD'] === 'PATCH') {
-            $responseLogs[] = "=== Début de la requête pour modification du deck ===";
     
             // Récupérer les données JSON envoyées dans le corps de la requête
             $data = json_decode(file_get_contents('php://input'), true);
-            $responseLogs[] = "Données reçues : " . json_encode($data);
     
             // Vérifier les champs obligatoires
             if (!isset($data['titre_deck']) || !isset($data['date_fin_deck']) || !isset($data['nb_cartes'])) {
-                $responseLogs[] = "Champs obligatoires manquants.";
                 http_response_code(400); // Bad Request
-                echo json_encode(['error' => 'Tous les champs obligatoires doivent être remplis.', 'logs' => $responseLogs]);
+                echo json_encode(['error' => 'Tous les champs obligatoires doivent être remplis.']);
                 return;
             }
     
@@ -252,17 +308,15 @@ class DeckController extends Controller
     
             // Valider la date
             if (!DateTime::createFromFormat('Y-m-d', $date_fin_deck)) {
-                $responseLogs[] = "Format de la date invalide.";
                 http_response_code(400); // Bad Request
-                echo json_encode(['error' => 'Format de la date invalide. Utilisez le format YYYY-MM-DD.', 'logs' => $responseLogs]);
+                echo json_encode(['error' => 'Format de la date invalide. Utilisez le format YYYY-MM-DD.']);
                 return;
             }
     
             // Valider le nombre de cartes
             if (!is_numeric($nb_cartes) || intval($nb_cartes) <= 0) {
-                $responseLogs[] = "Le nombre de cartes doit être un entier positif.";
                 http_response_code(400); // Bad Request
-                echo json_encode(['error' => 'Le nombre de cartes doit être un entier positif.', 'logs' => $responseLogs]);
+                echo json_encode(['error' => 'Le nombre de cartes doit être un entier positif.']);
                 return;
             }
     
@@ -274,7 +328,6 @@ class DeckController extends Controller
             ]);
     
             if ($updated) {
-                $responseLogs[] = "Deck mis à jour avec succès.";
                 http_response_code(200); // OK
                 echo json_encode([
                     'status' => 'success',
@@ -283,22 +336,101 @@ class DeckController extends Controller
                         'titre_deck' => $titre_deck,
                         'date_fin_deck' => $date_fin_deck,
                         'nb_cartes' => $nb_cartes,
-                    ],
-                    'logs' => $responseLogs,
+                    ]
                 ]);
             } else {
-                $responseLogs[] = "Erreur lors de la mise à jour du deck.";
                 http_response_code(500); // Internal Server Error
-                echo json_encode(['error' => 'Erreur lors de la mise à jour du deck.', 'logs' => $responseLogs]);
+                echo json_encode(['error' => 'Erreur lors de la mise à jour du deck.']);
             }
         } else {
-            $responseLogs[] = "Méthode non autorisée.";
             http_response_code(405); // Method Not Allowed
-            echo json_encode(['error' => 'Méthode non autorisée.', 'logs' => $responseLogs]);
+            echo json_encode(['error' => 'Méthode non autorisée.']);
         }
     }
-    
-    
+    public function updateDeckStatus($id_deck)  // L'id_deck est maintenant passé en paramètre
+    {
+        // Définir les en-têtes pour une réponse JSON
+        header("Access-Control-Allow-Origin: *");
+        header("Access-Control-Allow-Headers: Content-Type, Authorization");
+        header("Access-Control-Allow-Methods: PATCH");
+        header("Content-Type: application/json");
+        if ($_SERVER['REQUEST_METHOD'] === 'PATCH') {
+            // Charger les variables d'environnement
+            $dotenv = Dotenv::createImmutable(__DIR__ . '/../../');
+            $dotenv->load();
+            // Récupérer le token depuis l'en-tête Authorization
+            $headers = getallheaders();
+            $authHeader = $headers['Authorization'] ?? '';
+            if (!preg_match('/Bearer\s(\S+)/', $authHeader, $matches)) {
+                http_response_code(401); // Unauthorized
+                echo json_encode(['error' => 'Token manquant ou invalide.']);
+                return;
+            }
+            $jwt = $matches[1]; // Le token JWT
+            $jwtSecret = $_ENV['JWT_SECRET'];
+            try {
+                // Décoder le token
+                $decoded = JWT::decode($jwt, new Key($jwtSecret, 'HS256'));
+            } catch (Exception $e) {
+                http_response_code(401); // Unauthorized
+                echo json_encode(['error' => 'Token invalide : ' . $e->getMessage()]);
+                return;
+            }
+            // Extraire les informations nécessaires du token
+            $id_administrateur_from_token = $decoded->id_administrateur ?? null;
+            // Vérifier que c'est un administrateur
+            if (!$id_administrateur_from_token) {
+                http_response_code(403); // Forbidden
+                echo json_encode(['error' => 'Vous devez être administrateur pour modifier le status.']);
+                return;
+            }
+            // Récupérer le status depuis le body
+            $data = json_decode(file_get_contents('php://input'), true);
+           
+            if (!isset($data['status'])) {
+                http_response_code(400);
+                echo json_encode(['error' => 'Le status est requis']);
+                return;
+            }
+            try {
+                // Mettre à jour le status
+                $result = Deck::getInstance()->updateStatus(
+                    intval($id_deck),  // On utilise l'id_deck de l'URL
+                    $data['status']
+                );
+                if ($result === true) {
+                    echo json_encode([
+                        'status' => 'success',
+                        'message' => 'Status du deck mis à jour'
+                    ]);
+                } elseif ($result === false) {
+                    http_response_code(400); // Bad Request
+                    echo json_encode([
+                        'status' => 'error',
+                        'message' => 'Le statut est déjà celui demandé'
+                    ]);
+                } else {
+                    http_response_code(404);
+                    echo json_encode([
+                        'status' => 'error',
+                        'message' => 'Deck non trouvé'
+                    ]);
+                }
+            } catch (Exception $e) {
+                http_response_code(400);
+                echo json_encode([
+                    'status' => 'error',
+                    'message' => $e->getMessage()
+                ]);
+            }
+        } else {
+            http_response_code(405); // Method Not Allowed
+            echo json_encode([
+                'error' => 'Méthode non autorisée'
+            ]);
+        }
+    }
+        
     
     
     public function delete(int|string $deckId)
@@ -307,12 +439,9 @@ class DeckController extends Controller
         header("Access-Control-Allow-Origin: *");
         header("Access-Control-Allow-Headers: Content-Type, Authorization");
         header("Content-Type: application/json");
-    
-        $responseLogs = [];
-    
-        if ($_SERVER['REQUEST_METHOD'] === 'DELETE') {
-            $responseLogs[] = "=== Début de la requête pour suppression de deck ===";
-    
+        
+        // Vérifier que la méthode est DELETE
+        if ($_SERVER['REQUEST_METHOD'] === 'DELETE') {    
             // Charger les variables d'environnement
             $dotenv = Dotenv::createImmutable(__DIR__ . '/../../');
             $dotenv->load();
@@ -320,63 +449,53 @@ class DeckController extends Controller
             // Récupérer le token depuis l'en-tête Authorization
             $headers = getallheaders();
             $authHeader = $headers['Authorization'] ?? '';
-            $responseLogs[] = "Authorization Header: " . $authHeader;
     
+            // Vérifier que le token est présent
             if (!preg_match('/Bearer\s(\S+)/', $authHeader, $matches)) {
-                $responseLogs[] = "Token manquant ou invalide.";
                 http_response_code(401); // Unauthorized
-                echo json_encode(['error' => 'Token manquant ou invalide.', 'logs' => $responseLogs]);
+                echo json_encode(['error' => 'Token manquant ou invalide.']);
                 return;
             }
     
             $jwt = $matches[1]; // Le token JWT
-            $responseLogs[] = "JWT reçu : " . $jwt;
     
             $jwtSecret = $_ENV['JWT_SECRET'];
     
             try {
                 // Décoder le token
                 $decoded = JWT::decode($jwt, new Key($jwtSecret, 'HS256'));
-                $responseLogs[] = "JWT décodé : " . json_encode($decoded);
             } catch (Exception $e) {
-                $responseLogs[] = "Erreur lors du décodage du token : " . $e->getMessage();
                 http_response_code(401); // Unauthorized
-                echo json_encode(['error' => 'Token invalide : ' . $e->getMessage(), 'logs' => $responseLogs]);
+                echo json_encode(['error' => 'Token invalide : ' . $e->getMessage()]);
                 return;
             }
     
             // Vérifier l'existence du deck avant de tenter la suppression
             $deck = Deck::getInstance()->findOneBy(['id_deck' => $deckId]);
             if (!$deck) {
-                $responseLogs[] = "Deck non trouvé.";
                 http_response_code(404); // Not Found
-                echo json_encode(['error' => 'Deck non trouvé.', 'logs' => $responseLogs]);
+                echo json_encode(['error' => 'Deck non trouvé.']);
                 return;
             }
     
-            // Supprimer le deck en utilisant la méthode delete avec un tableau de critères
+            // Supprimer le deck
+            // Utilisation de delete avec un tableau de critères pour rendre ça plus flexible
             if (Deck::getInstance()->delete(['id_deck' => $deckId])) {
-                $responseLogs[] = "Deck supprimé avec succès.";
                 http_response_code(200); // OK
                 echo json_encode([
                     'status' => 'success',
-                    'message' => 'Deck supprimé avec succès.',
-                    'logs' => $responseLogs
+                    'message' => 'Deck supprimé avec succès.'
                 ]);
             } else {
-                $responseLogs[] = "Erreur lors de la suppression du deck.";
                 http_response_code(500); // Internal Server Error
-                echo json_encode(['error' => 'Erreur lors de la suppression du deck.', 'logs' => $responseLogs]);
+                echo json_encode(['error' => 'Erreur lors de la suppression du deck.']);
             }
         } else {
-            $responseLogs[] = "Méthode non autorisée.";
             http_response_code(405); // Method Not Allowed
-            echo json_encode(['error' => 'Méthode non autorisée.', 'logs' => $responseLogs]);
+            echo json_encode(['error' => 'Méthode non autorisée.']);
         }
     
-        $responseLogs[] = "=== Fin de la requête ===";
     }
-    
     
     
     public function like(int|string $id_deck)

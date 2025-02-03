@@ -20,60 +20,65 @@ class CarteController extends Controller
      * Renvoie les cartes pour un administrateur, regroupées par deck.
      */
     public function getCartesForAdmin(): void
-{
-    header("Access-Control-Allow-Origin: *");
-    header("Access-Control-Allow-Headers: Content-Type");
-    header("Content-Type: application/json");
-
-    try {
-        // Récupérer les informations des decks
-        $decksInfos = Carte::getInstance()->findAllWithDecksAdmin(); // All decks
-        // Récupérer toutes les cartes
-        $cartes = Carte::getInstance()->findAll(); // All cards
-        // Décode les choix des cartes
-        $this->decodeCardChoices($cartes);
-
-        // Organiser les cartes par deck
-                   $cartesByDeck = [];
-    
-                   foreach ($decksInfos as $deckInfo) {
-                       $deckId = $deckInfo['id_deck'];
-                       $cartesForDeck = [];
-                       $nbCartes = 0;
-           
-                       // Récupérer les cartes liées au deck courant
-                       foreach ($cartes as $carte) {
-                           if ($carte['id_deck'] == $deckId) {
-                               $cartesForDeck[] = $carte;
-                               $nbCartes++; // Compte le nombre de cartes pour ce deck
-                           }
-                       }
-           
-                       // Ajouter les informations sur le deck dans la réponse
-                       $cartesByDeck[] = [
-                           'id_deck' => $deckId,
-                           'titre_deck' => $deckInfo['titre_deck'], // Titre du deck
-                           'nb_cartes' => $deckInfo['nb_cartes'], // nombre de cartes total
-                           'nb_cartes_ajoutées' => $nbCartes, // Nombre de cartes ajoutées
-                           'date_debut' => $deckInfo['date_debut'], // Date de début
-                           'date_fin_deck' => $deckInfo['date_fin_deck'], // Date de fin du deck
-                           'cartes' => $cartesForDeck // Cartes associées à ce deck
-                       ];
-                   }
-        // Retourne la réponse JSON
-        echo json_encode([
-            'status' => 'success',
-            'deck' => $cartesByDeck
-        ], JSON_PRETTY_PRINT);
-    } catch (Exception $e) {
-        // En cas d'erreur, retourne une réponse d'erreur
-        http_response_code(500); // Erreur interne du serveur
-        echo json_encode([
-            'status' => 'error',
-            'message' => $e->getMessage()
-        ]);
+    {
+        header("Access-Control-Allow-Origin: *");
+        header("Access-Control-Allow-Headers: Content-Type");
+        header("Content-Type: application/json");
+        try {
+            // Récupérer les informations des decks
+            $decksInfos = Carte::getInstance()->findAllWithDecksAdmin();
+            // Récupérer toutes les cartes
+            $cartes = Carte::getInstance()->findAll();
+            // Récupérer les informations des créateurs
+            $createursInfo = Carte::getInstance()->getCreateursInfoForCartes();
+            // Décode les choix des cartes
+            $this->decodeCardChoices($cartes);
+            
+            $cartesByDeck = [];
+            
+            foreach ($decksInfos as $deckInfo) {
+                $deckId = $deckInfo['id_deck'];
+                $cartesForDeck = [];
+                $nbCartes = 0;
+                
+                // Récupérer les cartes liées au deck courant
+                foreach ($cartes as $carte) {
+                    if ($carte['id_deck'] == $deckId) {
+                        // Ajouter les informations du créateur à la carte
+                        $carteWithCreator = $carte;
+                        if (isset($createursInfo[$carte['id_carte']])) {
+                            $carteWithCreator['createur'] = $createursInfo[$carte['id_carte']];
+                        }
+                        
+                        $cartesForDeck[] = $carteWithCreator;
+                        $nbCartes++;
+                    }
+                }
+                
+                $cartesByDeck[] = [
+                    'id_deck' => $deckId,
+                    'titre_deck' => $deckInfo['titre_deck'],
+                    'nb_cartes' => $deckInfo['nb_cartes'],
+                    'nb_cartes_atm' => $nbCartes,
+                    'date_debut' => $deckInfo['date_debut'],
+                    'date_fin_deck' => $deckInfo['date_fin_deck'],
+                    'status' => $deckInfo['status'],
+                    'cartes' => $cartesForDeck
+                ];
+            }
+            
+            echo json_encode([
+                'status' => 'success',
+                'deck' => $cartesByDeck
+            ], JSON_PRETTY_PRINT);
+        } catch (Exception $e) {
+            http_response_code(500);
+            echo json_encode([
+                'status' => 'error',
+                'message' => $e->getMessage()
+            ]);
+        }
     }
-}
 
 
     /**
@@ -88,10 +93,11 @@ class CarteController extends Controller
         header("Access-Control-Allow-Origin: *");
         header("Access-Control-Allow-Headers: Content-Type");
         header("Content-Type: application/json");
+        
         try {
             // Récupérer les informations des decks du créateur
             $decksInfos = Carte::getInstance()->findAllWithDecksCreateur(); // Decks du créateur
-            
+            $createursInfo = Carte::getInstance()->getCreateursInfoForCartes(); 
             // Organiser les cartes par deck
             $cartesByDeck = [];
             
@@ -101,10 +107,21 @@ class CarteController extends Controller
                 
                 // Utiliser la méthode findByDeckAndCreateur pour récupérer les cartes du créateur dans ce deck
                 $cartesForDeck = Carte::getInstance()->findByDeckAndCreateur($id_deck, $id_createur);
-    
-                // Décode les choix des cartes
+        
+                // Décoder les choix des cartes
                 $this->decodeCardChoices($cartesForDeck);
-    
+        
+                // Récupérer une carte aléatoire pour ce deck et créateur
+                $randomCarte = Carte::getInstance()->findRandomCarteForCreateur($id_deck, $id_createur);
+        
+                // Ajouter la carte aléatoire aux données du deck
+                foreach ($cartesForDeck as &$carte) {
+                    $carte['random_carte'] = $randomCarte;
+                    if (isset($createursInfo[$carte['id_carte']])) {
+                        $carte['createur'] = $createursInfo[$carte['id_carte']];
+                    }
+                }
+        
                 // Ajouter les informations sur le deck dans la réponse
                 if (!empty($cartesForDeck)) {
                     // Ajouter les informations sur le deck dans la réponse
@@ -112,9 +129,11 @@ class CarteController extends Controller
                         'id_deck' => $id_deck,
                         'titre_deck' => $deckInfo['titre_deck'], // Titre du deck
                         'nb_cartes' => $deckInfo['nb_cartes'], // Nombre de cartes total
+                        'nb_cartes_atm' => $deckInfo['carte_count'], 
                         'date_debut' => $deckInfo['date_debut'], // Date de début
                         'date_fin_deck' => $deckInfo['date_fin_deck'], // Date de fin du deck
-                        'cartes' => $cartesForDeck // Cartes associées à ce deck
+                        'status' => $deckInfo['status'],
+                        'cartes' => $cartesForDeck, // Cartes associées à ce deck
                     ];
                 }
             }
@@ -124,7 +143,7 @@ class CarteController extends Controller
                 'status' => 'success',
                 'deck' => $cartesByDeck
             ], JSON_PRETTY_PRINT);
-    
+        
         } catch (Exception $e) {
             // En cas d'erreur, retourner une réponse d'erreur
             http_response_code(500); // Erreur interne du serveur
@@ -134,6 +153,7 @@ class CarteController extends Controller
             ]);
         }
     }
+    
     
 
 /**
@@ -268,6 +288,10 @@ public function createOrGetRandom(int|string $id_deck)
 
 
 
+
+
+
+
     /**
      * Récupère les decks pour l'administrateur.
      */
@@ -359,158 +383,159 @@ public function createOrGetRandom(int|string $id_deck)
      *
      */
     
-    public function create()
-    {
-        // Définir les en-têtes pour une réponse JSON
-        header("Access-Control-Allow-Origin: *");
-        header("Access-Control-Allow-Headers: Content-Type, Authorization");
-        header("Content-Type: application/json");
-    
-        $responseLogs = [];
-    
-        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $responseLogs[] = "=== Début de la requête pour création de carte ===";
-    
-            // Charger les variables d'environnement
-            $dotenv = Dotenv::createImmutable(__DIR__ . '/../../');
-            $dotenv->load();
-    
-            // Récupérer le token depuis l'en-tête Authorization
-            $headers = getallheaders();
-            $authHeader = $headers['Authorization'] ?? '';
-            $responseLogs[] = "Authorization Header: " . $authHeader;
-    
-            if (!preg_match('/Bearer\s(\S+)/', $authHeader, $matches)) {
-                $responseLogs[] = "Token manquant ou invalide.";
-                http_response_code(401); // Unauthorized
-                echo json_encode(['error' => 'Token manquant ou invalide.', 'logs' => $responseLogs]);
-                return;
-            }
-    
-            $jwt = $matches[1]; // Le token JWT
-            $jwtSecret = $_ENV['JWT_SECRET'];
-    
-            try {
-                // Décoder le token
-                $decoded = JWT::decode($jwt, new Key($jwtSecret, 'HS256'));
-                $responseLogs[] = "JWT décodé : " . json_encode($decoded);
-            } catch (Exception $e) {
-                $responseLogs[] = "Erreur lors du décodage du token : " . $e->getMessage();
-                http_response_code(401); // Unauthorized
-                echo json_encode(['error' => 'Token invalide : ' . $e->getMessage(), 'logs' => $responseLogs]);
-                return;
-            }
-    
-            // Extraire les informations nécessaires du token
-            $id_createur_from_token = $decoded->id_createur ?? null;
-            $id_administrateur_from_token = $decoded->id_administrateur ?? null;
-    
-            // Vérifier qu'un administrateur ou créateur est authentifié
-            if (!$id_createur_from_token && !$id_administrateur_from_token) {
-                $responseLogs[] = "Aucun administrateur ou créateur identifié dans le token.";
-                http_response_code(403); // Forbidden
-                echo json_encode(['error' => 'Vous devez être connecté en tant qu’administrateur ou créateur.', 'logs' => $responseLogs]);
-                return;
-            }
-    
-            // Récupérer les données JSON envoyées dans le corps de la requête
-            $data = json_decode(file_get_contents('php://input'), true);
-            $responseLogs[] = "Données reçues : " . json_encode($data);
-    
-            // Validation des données obligatoires
-            if (!isset($data['texte_carte']) ||
-                !isset($data['valeurs_choix1_texte']) ||
-                !isset($data['valeurs_choix1_population']) || 
-                !isset($data['valeurs_choix1_finances']) ||
-                !isset($data['valeurs_choix2_texte']) ||
-                !isset($data['valeurs_choix2_population']) || 
-                !isset($data['valeurs_choix2_finances']) || 
-                !isset($data['deck_id'])) {
-                $responseLogs[] = "Champs obligatoires manquants.";
-                http_response_code(400); // Bad Request
-                echo json_encode(['error' => 'Tous les champs obligatoires doivent être remplis.', 'logs' => $responseLogs]);
-                return;
-            }
-            
-            // Extraction des données
-            $texte_carte = trim($data['texte_carte']);
-            $valeurs_choix1_texte = trim($data['valeurs_choix1_texte']);
-            $valeurs_choix1_population = (int) $data['valeurs_choix1_population'];
-            $valeurs_choix1_finances = (int) $data['valeurs_choix1_finances'];
-            $valeurs_choix2_texte = trim($data['valeurs_choix2_texte']);
-            $valeurs_choix2_population = (int) $data['valeurs_choix2_population'];
-            $valeurs_choix2_finances = (int) $data['valeurs_choix2_finances'];
-            $deck_id = (int) $data['deck_id'];
-            // Calculer automatiquement l'ordre de soumission
-            $ordre_soumission = Carte::getInstance()->calculateNextOrder($deck_id);
-    
-            // Vérifications supplémentaires
-            if (strlen($texte_carte) < 50 || strlen($texte_carte) > 280) {
-                $responseLogs[] = "Le texte de la carte doit contenir entre 50 et 280 caractères.";
-                http_response_code(400); // Bad Request
-                echo json_encode(['error' => 'Le texte de la carte doit contenir entre 50 et 280 caractères.', 'logs' => $responseLogs]);
-                return;
-            }
-    
-            // Encoder les choix en JSON
-            $valeurs_choix1 = json_encode([
-                'texte' => $valeurs_choix1_texte,
-                'population' => $valeurs_choix1_population,
-                'finances' => $valeurs_choix1_finances
-            ], JSON_UNESCAPED_UNICODE);
-            $valeurs_choix2 = json_encode([
-                'texte' => $valeurs_choix2_texte,
-                'population' => $valeurs_choix2_population,
-                'finances' => $valeurs_choix2_finances
-            ], JSON_UNESCAPED_UNICODE);
-    
-            // Préparer les données pour l'insertion
-            $cardData = [
-                'texte_carte' => $texte_carte,
-                'valeurs_choix1' => $valeurs_choix1,
-                'valeurs_choix2' => $valeurs_choix2,
-                'id_deck' => $deck_id,
-                'ordre_soumission' => $ordre_soumission,
-            ];
-    
-            // Associer l'utilisateur selon le token
-            if ($id_createur_from_token) {
-                $cardData['id_createur'] = $id_createur_from_token;
-            }
-            if ($id_administrateur_from_token) {
-                $cardData['id_administrateur'] = $id_administrateur_from_token;
-            }
-    
-            // Insérer la carte dans la base de données
-            try {
-                $carteId = Carte::getInstance()->create($cardData);
-                $responseLogs[] = "Carte créée avec succès. ID : $carteId";
-    
-                http_response_code(201); // Created
-                echo json_encode([
-                    'status' => 'success',
-                    'card' => [
-                        'id_carte' => $carteId,
-                        'texte_carte' => $texte_carte,
-                        'id_deck' => $deck_id,
-                        'ordre_soumission' => $ordre_soumission,
-                    ],
-                    'logs' => $responseLogs
-                ]);
-            } catch (Exception $e) {
-                $responseLogs[] = "Erreur lors de la création de la carte : " . $e->getMessage();
-                http_response_code(500); // Internal Server Error
-                echo json_encode(['error' => 'Erreur lors de la création de la carte.', 'logs' => $responseLogs]);
-            }
-        } else {
-            $responseLogs[] = "Méthode non autorisée.";
-            http_response_code(405); // Method Not Allowed
-            echo json_encode(['error' => 'Méthode non autorisée.', 'logs' => $responseLogs]);
-        }
-    
-        $responseLogs[] = "=== Fin de la requête ===";
-    }
-    
+     public function create()
+     {
+         // Définir les en-têtes pour une réponse JSON
+         header("Access-Control-Allow-Origin: *");
+         header("Access-Control-Allow-Headers: Content-Type, Authorization");
+         header("Content-Type: application/json");
+     
+         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+             // Charger les variables d'environnement
+             $dotenv = Dotenv::createImmutable(__DIR__ . '/../../');
+             $dotenv->load();
+     
+             // Récupérer le token depuis l'en-tête Authorization
+             $headers = getallheaders();
+             $authHeader = $headers['Authorization'] ?? '';
+     
+             if (!preg_match('/Bearer\s(\S+)/', $authHeader, $matches)) {
+                 http_response_code(401);
+                 echo json_encode(['error' => 'Token manquant ou invalide.']);
+                 return;
+             }
+     
+             $jwt = $matches[1];
+             $jwtSecret = $_ENV['JWT_SECRET'];
+     
+             try {
+                 // Décoder le token
+                 $decoded = JWT::decode($jwt, new Key($jwtSecret, 'HS256'));
+             } catch (Exception $e) {
+                 http_response_code(401);
+                 echo json_encode(['error' => 'Token invalide : ' . $e->getMessage()]);
+                 return;
+             }
+     
+             // Extraire les informations nécessaires du token
+             $id_createur_from_token = $decoded->id_createur ?? null;
+             $id_administrateur_from_token = $decoded->id_administrateur ?? null;
+     
+             // Vérifier qu'un administrateur ou créateur est authentifié
+             if (!$id_createur_from_token && !$id_administrateur_from_token) {
+                 http_response_code(403);
+                 echo json_encode(['error' => 'Vous devez être connecté en tant qu’administrateur ou créateur.']);
+                 return;
+             }
+     
+             // Récupérer les données JSON envoyées dans le corps de la requête
+             $data = json_decode(file_get_contents('php://input'), true);
+     
+             // Validation des données obligatoires
+             if (!isset($data['texte_carte']) ||
+                 !isset($data['valeurs_choix1_texte']) ||
+                 !isset($data['valeurs_choix1_population']) || 
+                 !isset($data['valeurs_choix1_finances']) ||
+                 !isset($data['valeurs_choix2_texte']) ||
+                 !isset($data['valeurs_choix2_population']) || 
+                 !isset($data['valeurs_choix2_finances']) || 
+                 !isset($data['id_deck'])) {
+                 http_response_code(400);
+                 echo json_encode(['error' => 'Tous les champs obligatoires doivent être remplis.']);
+                 return;
+             }
+     
+             // Extraction des données
+             $texte_carte = trim($data['texte_carte']);
+             $valeurs_choix1_texte = trim($data['valeurs_choix1_texte']);
+             $valeurs_choix1_population = (int) $data['valeurs_choix1_population'];
+             $valeurs_choix1_finances = (int) $data['valeurs_choix1_finances'];
+             $valeurs_choix2_texte = trim($data['valeurs_choix2_texte']);
+             $valeurs_choix2_population = (int) $data['valeurs_choix2_population'];
+             $valeurs_choix2_finances = (int) $data['valeurs_choix2_finances'];
+             $id_deck = (int) $data['id_deck'];
+     
+             $minValue = -15;
+             $maxValue = 15;
+             if ($valeurs_choix1_population < $minValue || $valeurs_choix1_population > $maxValue ||
+                 $valeurs_choix1_finances < $minValue || $valeurs_choix1_finances > $maxValue ||
+                 $valeurs_choix2_population < $minValue || $valeurs_choix2_population > $maxValue ||
+                 $valeurs_choix2_finances < $minValue || $valeurs_choix2_finances > $maxValue) {
+                 http_response_code(400);
+                 echo json_encode(['error' => 'Les valeurs de population et de finances doivent être comprises entre -15 et +15.']);
+                 return;
+             }
+     
+             // Calculer automatiquement l'ordre de soumission
+             $ordre_soumission = Carte::getInstance()->calculateNextOrder($id_deck);
+     
+             // Vérifications supplémentaires
+             if (strlen($texte_carte) < 50 || strlen($texte_carte) > 280) {
+                 http_response_code(400);
+                 echo json_encode(['error' => 'Le texte de la carte doit contenir entre 50 et 280 caractères.']);
+                 return;
+             }
+     
+             // Encoder les choix en JSON
+             $valeurs_choix1 = json_encode([
+                 'texte' => $valeurs_choix1_texte,
+                 'population' => $valeurs_choix1_population,
+                 'finances' => $valeurs_choix1_finances
+             ], JSON_UNESCAPED_UNICODE);
+             $valeurs_choix2 = json_encode([
+                 'texte' => $valeurs_choix2_texte,
+                 'population' => $valeurs_choix2_population,
+                 'finances' => $valeurs_choix2_finances
+             ], JSON_UNESCAPED_UNICODE);
+     
+             // Préparer les données pour l'insertion
+             $cardData = [
+                 'texte_carte' => $texte_carte,
+                 'valeurs_choix1' => $valeurs_choix1,
+                 'valeurs_choix2' => $valeurs_choix2,
+                 'id_deck' => $id_deck,
+                 'ordre_soumission' => $ordre_soumission,
+             ];
+             $id_createur_from_token = intval($id_createur_from_token);
+     
+             // Associer l'utilisateur selon le token
+             if ($id_createur_from_token) {
+                 $alreadyExists = Carte::getInstance()->existsForUserByRole($id_deck, $id_createur_from_token, 'createur');
+                 if ($alreadyExists) {
+                     http_response_code(409);
+                     echo json_encode(['error' => 'Une carte pour ce créateur existe déjà dans ce deck.']);
+                     return;
+                 }
+                 $cardData['id_createur'] = $id_createur_from_token;
+             }
+     
+             if ($id_administrateur_from_token) {
+                 $cardData['id_administrateur'] = $id_administrateur_from_token;
+             }
+     
+             // Insérer la carte dans la base de données
+             try {
+                 $carteId = Carte::getInstance()->create($cardData);
+                 http_response_code(201);
+                 echo json_encode([
+                     'status' => 'success',
+                     'card' => [
+                         'id_carte' => $carteId,
+                         'texte_carte' => $texte_carte,
+                         'id_deck' => $id_deck,
+                         'ordre_soumission' => $ordre_soumission,
+                     ]
+                 ]);
+             } catch (Exception $e) {
+                 http_response_code(500);
+                 echo json_encode(['error' => 'Erreur lors de la création de la carte.']);
+             }
+         } else {
+             http_response_code(405);
+             echo json_encode(['error' => 'Méthode non autorisée.']);
+         }
+     }
+     
     
     public function update(int|string $id)
     {
@@ -525,7 +550,7 @@ public function createOrGetRandom(int|string $id_deck)
         // Get the existing card data using the ID
         $carte = Carte::getInstance()->findOneBy(['id_carte' => $id]);
         if (!$carte) {
-            echo json_encode(['error' => 'Carte introuvable.']);
+            echo json_encode(['error' => 'Carte non trouvée.']);
             http_response_code(404); // Not Found
             return;
         }
@@ -590,7 +615,6 @@ public function createOrGetRandom(int|string $id_deck)
             // Update the card in the database
             try {
                 Carte::getInstance()->update($id, $fieldsToUpdate);
-                $responseLogs[] = "Carte mise à jour avec succès. ID : $id";
     
                 // Send the success response
                 http_response_code(200); // OK
@@ -599,7 +623,7 @@ public function createOrGetRandom(int|string $id_deck)
                     'updated_fields' => $fieldsToUpdate,
                 ]);
             } catch (Exception $e) {
-                echo json_encode(['error' => 'Erreur lors de la mise à jour de la carte.', 'logs' => $responseLogs]);
+                echo json_encode(['error' => 'Erreur lors de la mise à jour de la carte.']);
                 http_response_code(500); // Internal Server Error
             }
         } else {
@@ -613,7 +637,6 @@ public function createOrGetRandom(int|string $id_deck)
     
     
     
-
 /**
  * Supprimer une carte.
  * @route [delete] /cartes/effacer/{id}
@@ -625,10 +648,8 @@ public function delete(int|string $carteId)
     header("Access-Control-Allow-Headers: Content-Type, Authorization");
     header("Content-Type: application/json");
 
-    $responseLogs = [];
 
     if ($_SERVER['REQUEST_METHOD'] === 'DELETE') {
-        $responseLogs[] = "=== Début de la requête pour suppression de carte ===";
 
         // Charger les variables d'environnement
         $dotenv = Dotenv::createImmutable(__DIR__ . '/../../');
@@ -637,61 +658,50 @@ public function delete(int|string $carteId)
         // Récupérer le token depuis l'en-tête Authorization
         $headers = getallheaders();
         $authHeader = $headers['Authorization'] ?? '';
-        $responseLogs[] = "Authorization Header: " . $authHeader;
 
         if (!preg_match('/Bearer\s(\S+)/', $authHeader, $matches)) {
-            $responseLogs[] = "Token manquant ou invalide.";
             http_response_code(401); // Unauthorized
-            echo json_encode(['error' => 'Token manquant ou invalide.', 'logs' => $responseLogs]);
+            echo json_encode(['error' => 'Token manquant ou invalide.']);
             return;
         }
 
         $jwt = $matches[1]; // Le token JWT
-        $responseLogs[] = "JWT reçu : " . $jwt;
 
         $jwtSecret = $_ENV['JWT_SECRET'];
 
         try {
             // Décoder le token
             $decoded = JWT::decode($jwt, new Key($jwtSecret, 'HS256'));
-            $responseLogs[] = "JWT décodé : " . json_encode($decoded);
         } catch (Exception $e) {
-            $responseLogs[] = "Erreur lors du décodage du token : " . $e->getMessage();
             http_response_code(401); // Unauthorized
-            echo json_encode(['error' => 'Token invalide : ' . $e->getMessage(), 'logs' => $responseLogs]);
+            echo json_encode(['error' => 'Token invalide : ' . $e->getMessage()]);
             return;
         }
 
         // Vérifier l'existence du carte avant de tenter la suppression
         $carte = Carte::getInstance()->findOneBy(['id_carte' => $carteId]);
         if (!$carte) {
-            $responseLogs[] = "Carte non trouvé.";
             http_response_code(404); // Not Found
-            echo json_encode(['error' => 'Carte non trouvé.', 'logs' => $responseLogs]);
+            echo json_encode(['error' => 'Carte non trouvée.']);
             return;
         }
 
         // Supprimer le carte en utilisant la méthode delete avec un tableau de critères
         if (Carte::getInstance()->delete(['id_carte' => $carteId])) {
-            $responseLogs[] = "Carte supprimé avec succès.";
             http_response_code(200); // OK
             echo json_encode([
                 'status' => 'success',
                 'message' => 'Carte supprimé avec succès.',
-                'logs' => $responseLogs
             ]);
         } else {
-            $responseLogs[] = "Erreur lors de la suppression du carte.";
             http_response_code(500); // Internal Server Error
-            echo json_encode(['error' => 'Erreur lors de la suppression du carte.', 'logs' => $responseLogs]);
+            echo json_encode(['error' => 'Erreur lors de la suppression du carte.']);
         }
     } else {
-        $responseLogs[] = "Méthode non autorisée.";
         http_response_code(405); // Method Not Allowed
-        echo json_encode(['error' => 'Méthode non autorisée.', 'logs' => $responseLogs]);
+        echo json_encode(['error' => 'Méthode non autorisée.']);
     }
 
-    $responseLogs[] = "=== Fin de la requête ===";
 }
 
 }

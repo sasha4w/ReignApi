@@ -233,6 +233,8 @@ class Model
         // Retourner true si des lignes ont été supprimées, sinon false
         return $sth->rowCount() > 0;
     }
+    
+    
 
     /**
      * Excécute une requête.

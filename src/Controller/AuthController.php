@@ -198,11 +198,14 @@ class AuthController extends Controller
             try {
                 $jwt = JWT::encode($payload, $jwtSecret, 'HS256');
                 http_response_code(200);
-                echo json_encode(['token' => $jwt]);
+                echo json_encode([
+                    'token' => $jwt,
+                ]);
             } catch (Exception $e) {
                 echo json_encode(['error' => 'Erreur lors de la génération du token.']);
                 http_response_code(500);
             }
+            
 
             return;
         }

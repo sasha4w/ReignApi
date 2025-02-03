@@ -54,7 +54,7 @@ class CreateurController extends AuthController
                 return;
             }
     
-            $validGenres = ['Homme', 'Femme', 'Autres'];
+            $validGenres = ['Homme', 'Femme', 'Autre'];
             if (!in_array($genre, $validGenres)) {
                 http_response_code(400);
                 echo json_encode(['error' => 'Genre invalide.']);

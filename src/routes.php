@@ -43,13 +43,15 @@ return [
 
     /// GET ///
     
-    ['GET', '/ReignApi/api/v1/decks', 'deck@getDecks'], 
+    ['GET', '/ReignApi/api/v1/decks', 'deck@getDecks'],
+    ['GET', '/ReignApi/api/v1/decksnew', 'deck@getDecksNew'],  
     ['GET', '/ReignApi/api/v1/decks/playable', 'deck@getPlayableDecks'], 
     /// POST ///
     ['POST', '/ReignApi/api/v1/deck', 'deck@create'],
 
     /// PATCH ///
     ['PATCH', '/ReignApi/api/v1/decks/{id_deck:\d+}', 'deck@update'],
+    ['PATCH', '/ReignApi/api/v1/decks/{id_deck:\d+}/status', 'deck@updateDeckStatus'],
     ['PATCH', '/ReignApi/api/v1/decks/like/{id_deck:\d+}', 'deck@like'],
 
     /// DELETE ///
