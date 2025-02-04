@@ -167,6 +167,14 @@ class DeckController extends Controller
             echo json_encode(['error' => 'Format de la date invalide. Utilisez le format YYYY-MM-DD.']);
             return;
         }
+        $today = new DateTime();
+        $today->setTime(0, 0); // Réinitialiser l'heure pour ne comparer que la date
+
+        if ($dateDebut < $today) {
+            http_response_code(400); // Bad Request
+            echo json_encode(['error' => 'La date de début doit être postérieure à la date actuelle.']);
+            return;
+        }
         
         // Vérification que la date de début est inférieure à la date de fin
         if ($dateDebut >= $dateFin) {
@@ -227,7 +235,6 @@ class DeckController extends Controller
         header("Access-Control-Allow-Headers: Content-Type, Authorization");
         header("Content-Type: application/json");
     
-    
         // Forcer l'ID à être un entier
         $id = (int)$id;
     
@@ -256,16 +263,48 @@ class DeckController extends Controller
             $date_fin_deck = $data['date_fin_deck'];
             $nb_cartes = $data['nb_cartes'];
     
-            // Valider la date
-            if (!DateTime::createFromFormat('Y-m-d', $date_fin_deck)) {
-                http_response_code(400); // Bad Request
+            // Récupérer la date de début du deck existant
+            $dateDebut = DateTime::createFromFormat('Y-m-d', $deck['date_debut']);
+            if (!$dateDebut) {
+                http_response_code(500);
+                echo json_encode(['error' => 'Erreur interne: date de début invalide.']);
+                return;
+            }
+    
+            // Vérifier que la date de fin est bien au format attendu
+            $dateFin = DateTime::createFromFormat('Y-m-d', $date_fin_deck);
+            if (!$dateFin) {
+                http_response_code(400);
                 echo json_encode(['error' => 'Format de la date invalide. Utilisez le format YYYY-MM-DD.']);
+                return;
+            }
+    
+            // Vérifier que la date de début est dans le futur
+            $today = new DateTime();
+            $today->setTime(0, 0); // Ignorer l'heure pour comparer uniquement les dates
+            if ($dateDebut < $today) {
+                http_response_code(400);
+                echo json_encode(['error' => 'La date de début ne peut pas être dans le passé.']);
+                return;
+            }
+    
+            // Vérifier que la date de fin est postérieure à la date de début
+            if ($dateFin <= $dateDebut) {
+                http_response_code(400);
+                echo json_encode(['error' => 'La date de fin doit être postérieure à la date de début.']);
+                return;
+            }
+    
+            // Vérifier que les dates ne se chevauchent pas avec un autre deck
+            if (Deck::getInstance()->checkDeckDateOverlap($dateDebut, $dateFin, $id)) {
+                http_response_code(400);
+                echo json_encode(['error' => 'Les dates se chevauchent avec un deck existant.']);
                 return;
             }
     
             // Valider le nombre de cartes
             if (!is_numeric($nb_cartes) || intval($nb_cartes) <= 0) {
-                http_response_code(400); // Bad Request
+                http_response_code(400);
                 echo json_encode(['error' => 'Le nombre de cartes doit être un entier positif.']);
                 return;
             }
@@ -284,7 +323,8 @@ class DeckController extends Controller
                     'deck' => [
                         'id_deck' => $id,
                         'titre_deck' => $titre_deck,
-                        'date_fin_deck' => $date_fin_deck,
+                        'date_debut' => $dateDebut->format('Y-m-d'), // Garder l'info utile
+                        'date_fin_deck' => $dateFin->format('Y-m-d'),
                         'nb_cartes' => $nb_cartes,
                     ]
                 ]);
@@ -297,6 +337,7 @@ class DeckController extends Controller
             echo json_encode(['error' => 'Méthode non autorisée.']);
         }
     }
+    
     public function updateDeckStatus($id_deck)  // L'id_deck est maintenant passé en paramètre
     {
         // Définir les en-têtes pour une réponse JSON
