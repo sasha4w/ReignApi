@@ -21,31 +21,6 @@ class DeckController extends Controller
      */
     public function getDecks()
     {
-        // Récupérer les informations sur les decks avec le nombre de cartes
-        $decks = Deck::getInstance()->findAllWithCardCount();
-    
-        // Vérifier si des decks ont été récupérés
-        if ($decks) {
-            // Définir l'en-tête Content-Type pour une réponse JSON
-            header("Content-Type: application/json");
-    
-            // Retourner les decks sous forme de JSON
-            echo json_encode([
-                'status' => 'success',
-                'decks' => $decks
-            ]);
-        } else {
-            // Si aucune donnée n'est trouvée, retourner un message d'erreur
-            header("Content-Type: application/json");
-            echo json_encode([
-                'status' => 'error',
-                'message' => 'Aucun deck trouvé'
-            ]);
-        }
-    }
-    
-    public function getDecksNew()
-    {
         // Définir les en-têtes pour une réponse JSON et CORS
         header("Access-Control-Allow-Origin: *");
         header("Access-Control-Allow-Headers: Content-Type, Authorization");
@@ -108,31 +83,6 @@ class DeckController extends Controller
         }
     }
     
-
-    public function getPlayableDecks()
-    {
-        // Récupérer les decks jouables
-        $decks = Deck::getInstance()->findPlayableDecks();
-    
-        // Vérifier si des decks ont été récupérés
-        if ($decks) {
-            // Définir l'en-tête Content-Type pour une réponse JSON
-            header("Content-Type: application/json");
-    
-            // Retourner les decks sous forme de JSON
-            echo json_encode([
-                'status' => 'success',
-                'decks' => $decks
-            ]);
-        } else {
-            // Si aucune donnée n'est trouvée, retourner un message d'erreur
-            header("Content-Type: application/json");
-            echo json_encode([
-                'status' => 'error',
-                'message' => 'Aucun deck jouable trouvé'
-            ]);
-        }
-    }
     
     
     /**

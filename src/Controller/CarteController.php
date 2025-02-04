@@ -286,52 +286,6 @@ public function createOrGetRandom(int|string $id_deck)
 
 
 
-
-
-
-
-
-
-    /**
-     * Récupère les decks pour l'administrateur.
-     */
-    private function getDecksForAdmin(): array
-    {
-        return Carte::getInstance()->findAllWithDecksAdmin();
-    }
-
-    /**
-     * Récupère les decks pour un créateur spécifique.
-     */
-    private function getDecksForCreateur(int $id_createur): array
-    {
-        return Carte::getInstance()->findAllWithDecksCreateur();
-    }
-
-    /**
-     * Groupe les cartes par deck pour un administrateur.
-     */
-    private function getCartesGroupedByDeckForAdmin(array $decksInfos): array
-    {
-        $cartes = Carte::getInstance()->findAll(); // Récupérer toutes les cartes
-        $this->decodeCardChoices($cartes); // Décoder les choix JSON
-        return $this->groupCartesByDeck($decksInfos, $cartes);
-    }
-
-    /**
-     * Groupe les cartes par deck pour un créateur spécifique.
-     */
-    private function getCartesGroupedByDeckForCreateur(array $decksInfos, int $id_createur): array
-    {
-        $cartesByDeck = [];
-        foreach ($decksInfos as $deckInfo) {
-            $deckId = (int)($deckInfo['id_deck'] ?? $deckInfo->id_deck);
-            $cartesByDeck[$deckId] = Carte::getInstance()->findByDeckAndCreateur($deckId, $id_createur);
-            $this->decodeCardChoices($cartesByDeck[$deckId]);
-        }
-        return $cartesByDeck;
-    }
-
     /**
      * Décodage des choix JSON des cartes (modification directe sur la référence).
      */
@@ -348,30 +302,7 @@ public function createOrGetRandom(int|string $id_deck)
         }
     }
 
-    /**
-     * Regroupe les cartes par deck.
-     */
-    private function groupCartesByDeck(array $decksInfos, array $cartes): array
-    {
-        $cartesByDeck = [];
-        foreach ($decksInfos as $deckInfo) {
-            $deckId = (int)($deckInfo['id_deck'] ?? $deckInfo->id_deck);
-            $cartesByDeck[$deckId] = array_filter($cartes, function ($carte) use ($deckId) {
-                return (is_object($carte) ? $carte->id_deck : $carte['id_deck']) == $deckId;
-            });
 
-            // Récupérer et assigner la carte aléatoire
-            $carteAleatoire = Carte::getInstance()->getOrAssignRandomCard($deckId);
-            foreach ($cartesByDeck[$deckId] as &$carte) {
-                if (is_object($carte)) {
-                    $carte->carteAleatoire = $carteAleatoire;
-                } else {
-                    $carte['carteAleatoire'] = $carteAleatoire;
-                }
-            }
-        }
-        return $cartesByDeck;
-    }
 
     
 

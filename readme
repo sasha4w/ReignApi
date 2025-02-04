@@ -1,0 +1,73 @@
+# Reign API
+
+## Description
+
+Reign API est une API permettant la gestion de l'authentification, des créateurs, des decks et des cartes. Elle envoie des messages d'erreurs précis pour aider l'utilisateur à mieux comprendre les problèmes rencontrés.
+
+L'admin peut gérer, créer et administrer toutes les cartes et decks. Le créateur ne peut que créer des cartes pour les decks actifs.
+
+## Base URL
+
+```
+/ReignApi/api/v1
+```
+
+## Routes
+
+### Authentification
+
+| Méthode | Endpoint      | Action                      |
+| ------- | ------------- | --------------------------- |
+| POST    | `/auth/login` | Authentifier un utilisateur |
+
+### Admin
+
+| Méthode | Endpoint                  | Action                            |
+| ------- | ------------------------- | --------------------------------- |
+| GET     | `/cartes/administrateur`  | Récupérer toutes les cartes       |
+| GET     | `/decks`                  | Récupérer tous les decks          |
+| POST    | `/deck`                   | Créer un deck                     |
+| POST    | `/carte`                  | Créer une carte                   |
+| PATCH   | `/decks/{id_deck}`        | Mettre à jour un deck             |
+| PATCH   | `/decks/{id_deck}/status` | Mettre à jour le statut d'un deck |
+| PATCH   | `/decks/like/{id_deck}`   | Aimer un deck                     |
+| PATCH   | `/cartes/{id_carte}`      | Mettre à jour une carte           |
+| DELETE  | `/decks/{id_deck}`        | Supprimer un deck                 |
+| DELETE  | `/cartes/{id_carte}`      | Supprimer une carte               |
+
+### Créateur
+
+| Méthode | Endpoint                        | Action                                               |
+| ------- | ------------------------------- | ---------------------------------------------------- |
+| POST    | `/createur`                     | Créer un créateur                                    |
+| PATCH   | `/createurs/warn/{id_createur}` | Avertir un créateur (Mesure de sécurité potentielle) |
+| GET     | `/cartes/createur/{id}`         | Récupérer les cartes d'un créateur                   |
+| POST    | `/carte`                        | Créer une carte (uniquement pour un deck actif)      |
+
+### Carte aléatoire
+
+| Méthode | Endpoint                          | Action                                              |
+| ------- | --------------------------------- | --------------------------------------------------- |
+| POST    | `/carte/aleatoire/deck/{deck_id}` | Créer ou récupérer une carte aléatoire pour un deck |
+
+### Créateur Banni
+
+| Méthode     | Endpoint    | Action                                                 |
+| ----------- | ----------- | ------------------------------------------------------ |
+| (À définir) | (À définir) | Fonctionnalité en réflexion pour renforcer la sécurité |
+
+## Formats des requêtes
+
+Les requêtes doivent être envoyées au format JSON.
+
+## Réponses
+
+L'API retourne des réponses au format JSON avec des messages d'erreur détaillés pour faciliter la compréhension des utilisateurs.
+
+## Authentification
+
+L'authentification est requise pour certaines routes. Utilisez un token JWT après connexion.
+
+## Contact
+
+Pour toute question ou problème, veuillez contacter l'équipe de développement.

@@ -10,15 +10,12 @@ les routes
 return [
     ///// AUTH /////
     ['POST', '/ReignApi/api/v1/auth/login', 'auth@login'],
-    ['POST', '/ReignApi/api/v1/auth/logout', 'auth@logout'],
-
     
     ///// ADMIN /////
 
     /// GET ///
        
     /// POST ///
-    ['POST', '/ReignApi/api/v1/administrateur/login', 'administrateur@login'],
 
     /// PATCH ///
     
@@ -31,8 +28,6 @@ return [
        
     /// POST ///
     ['POST', '/ReignApi/api/v1/createur', 'createur@create'],
-    ['POST', '/ReignApi/api/v1/createur/login', 'createur@login'],
-
 
     /// PATCH ///
     ['PATCH', '/ReignApi/api/v1/createurs/warn/{id_createur:\d+}', 'createur@warn'],
@@ -42,10 +37,7 @@ return [
     ///// DECK /////
 
     /// GET ///
-    
-    ['GET', '/ReignApi/api/v1/decks', 'deck@getDecks'],
-    ['GET', '/ReignApi/api/v1/decksnew', 'deck@getDecksNew'],  
-    ['GET', '/ReignApi/api/v1/decks/playable', 'deck@getPlayableDecks'], 
+    ['GET', '/ReignApi/api/v1/decks', 'deck@getDecks'],  
     /// POST ///
     ['POST', '/ReignApi/api/v1/deck', 'deck@create'],
 
